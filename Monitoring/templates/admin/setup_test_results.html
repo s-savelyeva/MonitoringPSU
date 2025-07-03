@@ -1,0 +1,334 @@
+{% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/construct.css' %}">
+    <script async src="{% static 'js/constructor_scripts.js' %}"></script> 
+
+{% block content %}
+    <header id="page-header">
+        <div class="logo">
+            <img class="logo-pic" src="{% static 'image/logo.png' %}" width="100" height="100px">
+            <div class="logo-text">
+                <div class="up">Психологический<br> термометр<br></div>
+                <div class="down">Экспресс-диагностика</div>
+            </div>
+        </div>
+        <div class="exit">
+            <a href="{% url 'user_logout' %}">
+                <img src="{% static 'image/exit.png' %}" width="50" height="50">
+                <div class="exit-text">
+                    <span>Выйти</span>
+                </div>
+            </a>
+        </div>
+    </header>
+    <div id="body-inner">
+        <nav id="nav-bar">
+            <a href="{% url 'admin_users' %}">Пользователи</a>
+            <a href="{% url 'edit_test_list' %}">Тесты</a>
+            <a href="{% url 'statistics' %}">Статистика</a>
+        </nav>
+        <div class="up-content">
+            <div class="statistics-controls">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <section id="first-block" class="window-creeate-new-test condition-block">
+                        <div class="test-text1-and-button-1">
+                            <div class="text-creeate-new-test">{{ test.title }}</div>
+                            <div class="test-text-const">{{ test.description }}</div>
+                        </div>
+                        <button type="submit" class="button-next-test-create1">Создать</button>
+                    </section>
+
+                    <section id="second-block" class="window-creeate-new-test condition-block">
+                        <div class="conditions-wrapper" id="conditions-wrapper">
+                            <div class="top-row">
+                                <div class="labels-row">
+                                    <div class="left-label">
+                                        <label class="form-label1">Условие</label>
+                                    </div>
+                                    <div class="center-label">
+                                        <label class="form-label2">Значения</label>
+                                    </div>
+                                </div>
+                                <div class="inputs-row">
+                                    <div class="left-input">
+                                        <select class="form-select" name="conditions[0][condition]" onchange="toggleValueInputs(this)">
+                                            <option value="between">Между (<= и =<)</option>
+                                            <option value="between_exclusive">Между ( < и < )</option>
+                                            <option value="between_inclusive">Между ( <= и < )</option>
+                                            <option value="between_matching">Между ( < и <= )</option>
+                                            <option value="greater">Больше ( > )</option>
+                                            <option value="greater_or_equal">Больше или равно ( >= )</option>
+                                            <option value="less">Меньше ( < )</option>
+                                            <option value="less_or_equal">Меньше или равно ( <= )</option>
+                                            <option value="equal">Равно ( = )</option>
+                                        </select>
+                                    </div>
+                                    <div class="center-input">
+                                        <div class="values-inputs">
+                                            <input type="number" class="form-input min-score" name="conditions[0][min_score]" placeholder="Значение 1">
+                                            <input type="number" class="form-input max-score" name="conditions[0][max_score]" placeholder="Значение 2" style="display: block;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="text" class="form-input" name="conditions[0][additional_info]" placeholder="Введите описание результата">
+                            <input type="text" class="form-input" name="conditions[0][result_description]" placeholder="Введите интерпретацию">
+                            <div class="bottom-row">
+                                <label class="custom-checkbox">
+                                    <input type="checkbox" class="use-image-checkbox" name="conditions[0][use_image]" onchange="toggleImageOrThermometer(this)">
+                                    <span class="checkbox-custom"></span>
+                                    <span class="checkbox-label">Использовать изображение</span>
+                                </label>
+                                <label class="custom-checkbox">
+                                    <input type="checkbox" class="use-thermometer-checkbox" name="conditions[0][use_thermometer]" onchange="toggleImageOrThermometer(this)">
+                                    <span class="checkbox-custom"></span>
+                                    <span class="checkbox-label">Использовать градусник</span>
+                                </label>
+                                <div class="upload-area" onclick="this.querySelector('input[type=file]').click();" style="display:none;">
+                                    <span class="upload-placeholder">Нажмите для загрузки</span>
+                                    <input type="file" name="conditions[0][image]" style="display: none;">
+                                    <div class="image-preview" style="display:none;"></div>
+                                </div>
+                                <div class="thermometer-options" style="display:none;">
+                                    <select class="form-select" name="conditions[0][color_direction]">
+                                        <option value="green_to_red">От зеленого к красному</option>
+                                        <option value="red_to_green">От красного к зеленому</option>
+                                    </select>
+                                </div>       
+                            </div>
+                            <button type="button" class="delete-condition-button">Удалить блок</button>
+                        </div>                    
+                    </section>
+                    <div id="added-blocks-container"></div>
+                    <button id="add-condition-button" class="add-condition-button">+</button>
+                </form>
+            </div>
+        </div>
+        <div id="uploadModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="modal-message"></span>
+                <button id="modalOkBtn" class="modal-okBtn">ОК</button>
+            </div>
+        </div>
+        <div id="saveConfirmModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="modal-message">Сохранить изменения?</span>
+                <button class="modal-okBtn" id="confirmYes" style="margin-right: 10px;">Да</button>
+                <button class="modal-No" id="confirmNo">Нет</button>
+            </div>
+        </div>
+    </div>
+</body>
+
+<style>
+.thermometer-options {
+    margin-top: 5px;
+    padding: 8px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    transition: opacity 0.3s ease;
+}
+.thermometer-options select {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const addConditionButton = document.getElementById('add-condition-button');
+        const addedBlocksContainer = document.getElementById('added-blocks-container');
+        let blockIndex = 1;
+        addConditionButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            const newBlock = document.createElement('div');
+            newBlock.className = 'condition-block';
+            newBlock.innerHTML = `
+                <section id="second-block" class="window-creeate-new-test">
+                    <div class="conditions-wrapper" id="conditions-wrapper">
+                        <div class="condition-block">
+                            <div class="top-row">
+                                <div class="labels-row">
+                                    <div class="left-label">
+                                        <label class="form-label1">Условие</label>
+                                    </div>
+                                    <div class="center-label">
+                                        <label class="form-label2">Значения</label>
+                                    </div>
+                                </div>
+                                <div class="inputs-row">
+                                    <div class="left-input">
+                                        <select class="form-select" name="conditions[${blockIndex}][condition]" onchange="toggleValueInputs(this)">
+                                            <option value="between">Между (<= и =<)</option>
+                                            <option value="between_exclusive">Между ( < и )</option>
+                                            <option value="between_inclusive">Между ( <= и < )</option>
+                                            <option value="between_matching">Между ( < и <= )</option>
+                                            <option value="greater">Больше ( > )</option>
+                                            <option value="greater_or_equal">Больше или равно ( >= )</option>
+                                            <option value="less">Меньше ( < )</option>
+                                            <option value="less_or_equal">Меньше или равно ( <= )</option>
+                                            <option value="equal">Равно ( = )</option>
+                                        </select>
+                                    </div>
+                                    <div class="center-input">
+                                        <div class="values-inputs">
+                                            <input type="number" class="form-input min-score" name="conditions[${blockIndex}][min_score]" placeholder="Значение 1">
+                                            <input type="number" class="form-input max-score" name="conditions[${blockIndex}][max_score]" placeholder="Значение 2" style="display: block;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="text" class="form-input" name="conditions[${blockIndex}][additional_info]" placeholder="Введите описание результата">
+                            <input type="text" class="form-input" name="conditions[${blockIndex}][result_description]" placeholder="Введите расшифровки">
+                            <div class="bottom-row">
+                                <label class="custom-checkbox">
+                                    <input type="checkbox" class="use-image-checkbox" name="conditions[${blockIndex}][use_image]" onchange="toggleImageOrThermometer(this)">
+                                    <span class="checkbox-custom"></span>
+                                    <span class="checkbox-label">Использовать изображение</span>
+                                </label>
+                                <label class="custom-checkbox">
+                                    <input type="checkbox" class="use-thermometer-checkbox" name="conditions[${blockIndex}][use_thermometer]" onchange="toggleImageOrThermometer(this)">
+                                    <span class="checkbox-custom"></span>
+                                    <span class="checkbox-label">Использовать градусник</span>
+                                </label>
+                                <div class="upload-area" onclick="this.querySelector('input[type=file]').click();" style="display:none;">
+                                    <span class="upload-placeholder">Нажмите для загрузки</span>
+                                    <input type="file" name="conditions[${blockIndex}][image]" style="display: none;">
+                                    <div class="image-preview" style="display:none;"></div>
+                                </div>
+                                <div class="thermometer-options" style="display:none;">
+                                    <select class="form-select" name="conditions[${blockIndex}][color_direction]">
+                                        <option value="green_to_red">От зеленого к красному</option>
+                                        <option value="red_to_green">От красного к зеленому</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="delete-condition-button">Удалить блок</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            `;
+            addedBlocksContainer.appendChild(newBlock);
+            blockIndex++;
+            newBlock.querySelector('.delete-condition-button').addEventListener('click', function () {
+                addedBlocksContainer.removeChild(newBlock);
+            });
+        });
+
+        document.querySelector('.button-next-test-create1').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('saveConfirmModal').style.display = 'flex';
+        });
+
+        document.getElementById('confirmYes').addEventListener('click', function() {
+            const results = document.querySelectorAll('input[name^="conditions"][name$="[additional_info]"]');
+            const filledResults = Array.from(results).filter(el => el.value && el.value.trim() !== '');
+
+            if (filledResults.length === 0) {
+                showModal('Пожалуйста, добавьте хотя бы один результат перед созданием теста.');
+                document.getElementById('saveConfirmModal').style.display = 'none';
+            } else {
+                const form = document.querySelector('form');
+                if (form) {
+                    form.submit();
+                }
+            }
+        });
+
+        document.getElementById('confirmNo').addEventListener('click', function() {
+            document.getElementById('saveConfirmModal').style.display = 'none';
+        });
+
+        function showModal(message) {
+            const modal = document.getElementById('uploadModal');
+            modal.querySelector('.modal-message').textContent = message;
+            modal.style.display = 'flex';
+        }
+        
+        document.getElementById('modalOkBtn').onclick = function() {
+            document.getElementById('uploadModal').style.display = 'none';
+        };
+
+        function validateImageInput(input) {
+            const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            input.addEventListener('change', function(){
+                const file = input.files[0];
+                const uploadArea = input.closest('.upload-area');
+                const preview = uploadArea.querySelector('.image-preview');
+                const placeholder = uploadArea.querySelector('.upload-placeholder');
+                if (!input.closest('.bottom-row').querySelector('.use-image-checkbox').checked) return;
+
+                preview.innerHTML = '';
+                preview.style.display = 'none';
+                placeholder.style.display = 'block';
+                if (!allowed.includes(file.type)) {
+                    input.value = '';
+                    showModal('Ошибка: Картинка должна быть в одном из форматов: jpg, png, gif, webp!');
+                } else {
+                    showModal('Картинка успешно выбрана!');
+                    const reader = new FileReader();
+                    reader.onload = function(e){
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'preview-img';
+                        preview.innerHTML = '';
+                        preview.appendChild(img);
+                        preview.style.display = 'block';
+                        placeholder.style.display = 'none';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        document.querySelectorAll('input[type=file]').forEach(input => validateImageInput(input));
+        const observer = new MutationObserver(function(mutationsList){
+            for(const mutation of mutationsList){
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1) {
+                        node.querySelectorAll('input[type=file]').forEach(input => 
+                            validateImageInput(input)
+                        );
+                    }
+                });
+            }
+        });
+        observer.observe(addedBlocksContainer, { childList: true, subtree: true });
+    });
+
+    function toggleValueInputs(selectElement) {
+        const selectedCondition = selectElement.value;
+        const valuesInputs = selectElement.closest('.condition-block').querySelector('.values-inputs');
+        const minScoreInput = valuesInputs.querySelector('.min-score');
+        const maxScoreInput = valuesInputs.querySelector('.max-score');
+
+        if (['between', 'between_exclusive', 'between_inclusive', 'between_matching'].includes(selectedCondition)) {
+            minScoreInput.style.display = 'block';
+            maxScoreInput.style.display = 'block';
+        } else {
+            minScoreInput.style.display = 'block';
+            maxScoreInput.style.display = 'none';
+        }
+    }
+
+    function toggleImageOrThermometer(checkbox) {
+        const conditionBlock = checkbox.closest('.condition-block');
+        const uploadArea = conditionBlock.querySelector('.upload-area');
+        const thermometerOptions = conditionBlock.querySelector('.thermometer-options');
+        const useImage = conditionBlock.querySelector('.use-image-checkbox');
+        const useThermometer = conditionBlock.querySelector('.use-thermometer-checkbox');
+        uploadArea.style.display = 'none';
+        thermometerOptions.style.display = 'none';
+
+        if (checkbox.classList.contains('use-image-checkbox')) {
+            useThermometer.checked = false;
+            if (useImage.checked) uploadArea.style.display = 'block';
+        } else if (checkbox.classList.contains('use-thermometer-checkbox')) {
+            useImage.checked = false;
+            if (useThermometer.checked) thermometerOptions.style.display = 'block';
+        }
+    }
+</script>
+{% endblock %}

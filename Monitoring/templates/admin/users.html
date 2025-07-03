@@ -1,0 +1,675 @@
+{% extends "base.html" %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}"> <!-- Подключение CSS -->
+<script async src="{% static 'js/script.js' %}"></script>
+{% block title %}Мониторинг{% endblock %}
+
+{% block content %}
+  <body>
+    <div id = "body-inner">
+      <nav id="nav-bar">
+        <a href="{% url 'admin_users' %}">Пользователи</a>
+        <a href="{% url 'edit_test_list' %}">Тесты</a>
+        <a href="{% url 'statistics' %}">Статистика</a>
+        <a href="{% url 'data_editing' %}">Редактирование данных</a>
+      </nav>
+      <main id="content_id">
+        <div class="up-content">
+          <div class="statistics-controls">
+            <div class="title">Пользователи</div>
+            <div class="search-container">
+              <form method="GET" action="" class="filters-form">
+                <div id="main-container" style="display: flex; gap: 20px;">
+                  <div class="column-left">
+                    <div class="search-input-wrapper">
+                      <input type="text" name="q" class="search-input" placeholder="Поиск..." value="{{ search_query }}">
+                      <span class="search-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="gray" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="8" cy="8" r="6" />
+                          <line x1="13.5" y1="13.5" x2="19" y2="19" />
+                        </svg>
+                      </span>
+                    </div>
+                    <div class="filter-row">
+                      <label>
+                        <div class="control-label">Выбрать тест:</div>
+                        <select name="test_filter" class="statistics-select" aria-label="Фильтр по тесту" onchange="this.form.submit()">
+                          <option value="" {% if selected_test == "" %}selected{% endif %}>Все</option>
+                          {% for test in tests %}
+                            <option value="{{ test.id }}" {% if selected_test == test.id|stringformat:"s" %}selected{% endif %}>{{ test.title }}</option>
+                          {% endfor %}
+                          <option value="__none__" {% if selected_test == "__none__" %}selected{% endif %}>Без тестов</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="buttons-container">
+                        <div class="save-x">
+                          <button id="excelExportBtn" class="save-btn" type="button" style="margin-top: 47px;">Выгрузить в файл</button>
+                          <button id="editModeBtn" class="save-btn" type="button" style="margin-top: 10px;">Редактировать</button>
+                          <button id="saveAllBtn" class="save-btn" type="button" style="margin-top:10px; display: none;">Сохранить изменения</button>
+                          <button id="cancelEditBtn" class="save-btn" type="button" style="margin-top:10px; display: none;">Отмена</button>
+                        </div>
+                    </div>           
+                  </div>
+                  <div class="column-right">
+                    <div id="filters-container">
+                      <div class="filter-column">
+                        <div class="filter-row">
+                          <label>
+                            <div class="control-label-1">Дата рождения от</div>
+                            <input type="date" name="dob_start" class="date-input" value="{{ dob_start|default_if_none:'' }}">
+                          </label>
+                          <label>
+                            <div class="control-label-1">до</div>
+                            <input type="date" name="dob_end" class="date-input" value="{{ dob_end|default_if_none:'' }}">
+                          </label>
+                        </div>
+                      </div>
+                      <div class="filter-column">
+                        <div class="filter-row">
+                          <label>
+                            <div class="control-label-1">Дата тестирования от</div>
+                            <input type="date" name="test_date_start" class="date-input" value="{{ test_date_start|default_if_none:'' }}">
+                          </label>
+                          <label>
+                            <div class="control-label-1">до</div>
+                            <input type="date" name="test_date_end" class="date-input" value="{{ test_date_end|default_if_none:'' }}">
+                          </label>
+                        </div>
+                      </div>
+                      <div class="filter-column">
+                        <div class="filter-row">
+                          <label>
+                              <div class="control-label-2">Выбор ролей</div>
+                              <div class="dropdown">
+                                <button type="button" id="dropdownButton" class="dropbtn">Выберите роли</button>
+                                <div id="dropdownContent" class="dropdown-content">
+                                  <label>
+                                    <div class="flex-container">
+                                      <input type="checkbox" name="roles" value="Студент" class="role-option" 
+                                      {% if 'Студент' in roles %}checked{% endif %}>
+                                      <span>Студент</span>
+                                    </div>
+                                  </label>
+                                  <label>
+                                    <div class="flex-container">
+                                      <input type="checkbox" name="roles" value="Сотрудник" class="role-option"
+                                      {% if 'Сотрудник' in roles %}checked{% endif %}>
+                                      <span>Сотрудник</span>
+                                    </div>
+                                  </label>
+                                  <label>
+                                    <div class="flex-container">
+                                      <input type="checkbox" name="roles" value="Гость" class="role-option"
+                                      {% if 'Гость' in roles %}checked{% endif %}>
+                                      <span>Гость</span>
+                                    </div>
+                                  </label>
+                                </div>
+                              </div>
+                          </label>
+                          <label>
+                            <div class="control-label-2">Факультет</div>
+                            <div class="dropdown">
+                              <button type="button" id="facultyDropdownBtn" class="dropbtn">Выберите факультеты</button>
+                              <div id="facultyDropdownContent" class="dropdown-content">
+                                {% for f in faculties %}
+                                  {% if f %}
+                                    <label>
+                                      <div class="flex-container">
+                                        <input type="checkbox" name="faculty" class="role-option" value="{{ f }}" {% if f in faculty %}checked{% endif %}>
+                                        <span>{{ f }}</span>
+                                      </div>
+                                    </label>
+                                  {% endif %}
+                                {% endfor %}
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="filter-column">
+                        <div class="filter-row">
+                          <label>
+                            <div class="control-label-2">Направления</div>
+                            <div class="dropdown">
+                              <button type="button" id="directionDropdownBtn" class="dropbtn">Выберите направления</button>
+                              <div id="directionDropdownContent" class="dropdown-content">
+                                {% for d in directions %}
+                                  {% if d %}
+                                  <label>
+                                    <div class="flex-container">
+                                      <input type="checkbox" name="direction" class="role-option" value="{{ d }}" {% if d in directions_selected %}checked{% endif %}>
+                                      <span>{{ d }}</span>
+                                    </div>
+                                  </label>
+                                  {% endif %}
+                                {% endfor %}
+                              </div>
+                            </div>
+                          </label>
+                          <label>
+                            <div class="control-label-2">Профиль</div>
+                            <div class="dropdown">
+                              <button type="button" id="profileDropdownBtn" class="dropbtn">Выберите профиль</button>
+                              <div id="profileDropdownContent" class="dropdown-content">
+                                {% for p in profiles %}
+                                  {% if p %}
+                                  <label>
+                                    <div class="flex-container">
+                                      <input type="checkbox" name="profile" class="role-option" value="{{ p }}" {% if p in profiles_selected %}checked{% endif %}>
+                                      <span>{{ p }}</span>
+                                    </div>
+                                  </label>
+                                  {% endif %}
+                                {% endfor %}
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="filter-column">
+                        <div class="filter-row">
+                          <label>
+                            <div class="control-label-2">Курс</div>
+                            <div class="dropdown">
+                              <button type="button" id="gradeDropdownBtn" class="dropbtn">Выберите курсы</button>
+                              <div id="gradeDropdownContent" class="dropdown-content">
+                                {% for g in grades %}
+                                  <label>
+                                    <div class="flex-container">
+                                      <input type="checkbox" name="grade" class="role-option" value="{{ g }}" {% if g in selected_grades %}checked{% endif %}>
+                                      <span>{{ g }}</span>
+                                    </div>
+                                  </label>
+                                {% endfor %}
+                              </div>
+                            </div>
+                          </label>
+                          <label>
+                            <div class="control-label-2">Уровень образования</div>
+                            <div class="dropdown">
+                              <button type="button" id="educationLevelDropdownBtn" class="dropbtn">Выберите уровни</button>
+                              <div id="educationLevelDropdownContent" class="dropdown-content">
+                                {% for el in education_levels %}
+                                  {% if el %}
+                                    <label>
+                                      <div class="flex-container">
+                                        <input type="checkbox" name="education_level" class="role-option" value="{{ el }}" {% if el in education_level_selected %}checked{% endif %}>
+                                        <span>{{ el }}</span>
+                                      </div>
+                                    </label>
+                                  {% endif %}
+                                {% endfor %}
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="filter-column">
+                        <div class="filter-row">
+                          <label>
+                            <div class="control-label-2">Баллы — от</div>
+                            <input type="number" step="any" name="status_min" class="score-input" value="{{ status_min|default_if_none:'' }}">
+                          </label>
+                          <label>
+                            <div class="control-label-2">до</div>
+                            <input type="number" step="any" name="status_max" class="score-input" value="{{ status_max|default_if_none:'' }}">
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    <button type="submit" class="save-btn" style="margin-top: 0px;">Применить фильтры</button>
+                    <button type="button" class="throw-btn" id="reset-filters">Сбросить фильтры</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div class="user-table">
+              <table id="myTable">
+                <thead>
+                  <tr>
+                    <th>id</th>
+                    <th>Фамилия</th>
+                    <th>Имя</th>
+                    <th>Отчество</th>
+                    <th>Дата рождения </th>
+                    <th>Роль</th>
+                    <th>Факультет</th>
+                    <th>Направление</th>
+                    <th>Профиль</th>
+                    <th>Уровень образования</th>
+                    <th>Курс</th>
+                    <th>Дата тестирования</th>
+                    {% if selected_test and selected_test != '__none__' %}
+                    <th>Текущее состояние</th>
+                    {% endif %}
+                    <th>Профиль</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for user in users %}
+                  <tr data-user-id="{{ user.user.id }}" data-user-type="{{ user.user_type }}">
+                    <td>{{ user.id }}</td>
+                    <td class="editable" data-field="last_name">{{ user.user.last_name }}</td>
+                    <td class="editable" data-field="first_name">{{ user.user.first_name }}</td>
+                    <td class="editable" data-field="patronymic">{{ user.patronymic|default:'-' }}</td>
+                    <td class="editable" data-field="date_of_birth">
+                      {% if user.date_of_birth %}
+                        {{ user.date_of_birth|date:"d.m.Y" }}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td class="editable" data-field="role" data-role-type="{% if user.role == 'Студент' %}student{% elif user.role == 'Сотрудник' %}staff{% elif user.role == 'Гость' %}guest{% else %}guest{% endif %}">{{ user.role|default:"Гость" }}</td>
+                    <td class="editable" data-field="faculty">{{ user.faculty|default:"-" }}</td>
+                    <td class="editable" data-field="direction">{% if user.user_type == "student" %}{{ user.direction|default:"-" }}{% else %}-{% endif %}</td>
+                    <td class="editable" data-field="profile">{% if user.user_type == "student" %}{{ user.profile|default:"-" }}{% else %}-{% endif %}</td>
+                    <td class="editable" data-field="education_level">{% if user.user_type == "student" %}{{ user.education_level|default:"-" }}{% else %}-{% endif %}</td>
+                    <td class="editable" data-field="grade">{% if user.user_type == 'student' %}{{ user.grade|default:"-" }}{% else %}-{% endif %}</td>
+                    <td>
+                      {% if user.last_test %}
+                        {{ user.last_test.completed_at|date:"d.m.Y H:i" }}
+                      {% else %}
+                        Нет даты
+                      {% endif %}
+                    </td>
+                    {% if selected_test and selected_test != '__none__' %}
+                    <td>
+                      {% if user.last_test %}
+                        {{ user.last_test.result }}
+                      {% else %}
+                        Нет результата
+                      {% endif %}
+                    </td>
+                    {% endif %}
+                    <td><a href="{% url 'user_profile' user.user.id %}">Профиль</a></td>   
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="...">Пользователи не найдены</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+
+              <div class="pagination">
+                <span class="step-links">
+                  {# Кнопка "Первая" #}
+                  <a href="?page=1{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                    {% if not users.has_previous %}class="disabled"{% endif %}>
+                      <button class="page-btn" {% if not users.has_previous %}disabled{% endif %}>Первая</button>
+                  </a>
+                  
+                  {# Стрелка "Назад" #}
+                  <a href="?page={% if users.has_previous %}{{ users.previous_page_number }}{% else %}1{% endif %}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                    {% if not users.has_previous %}class="disabled"{% endif %}>
+                      <button class="page-btn" {% if not users.has_previous %}disabled{% endif %}>←</button>
+                  </a>
+
+                  {# Блок с номерами страниц #}
+                  {% if users.paginator.num_pages > 1 %}
+                      {# Всегда показываем первую страницу, если она не текущая #}
+                      {% if users.number != 1 %}
+                          <a href="?page=1{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                              <button class="page-btn">1</button>
+                          </a>
+                          
+                          {# Многоточие если нужно #}
+                          {% if users.number|add:'-2' > 2 %}
+                              <span class="page-dots">...</span>
+                          {% endif %}
+                      {% endif %}
+
+                      {# Показываем номера страниц вокруг текущей #}
+                      {% for num in users.paginator.page_range %}
+                          {% if num == users.number %}
+                              <button class="page-btn active">{{ num }}</button>
+                          {% elif num > users.number|add:'-3' and num < users.number|add:'3' and num != 1 and num != users.paginator.num_pages %}
+                              <a href="?page={{ num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                  <button class="page-btn">{{ num }}</button>
+                              </a>
+                          {% endif %}
+                      {% endfor %}
+
+                      {# Многоточие если нужно #}
+                      {% if users.number|add:'3' < users.paginator.num_pages %}
+                          <span class="page-dots">...</span>
+                      {% endif %}
+
+                      {# Всегда показываем последнюю страницу, если она не текущая #}
+                      {% if users.number != users.paginator.num_pages %}
+                          <a href="?page={{ users.paginator.num_pages }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                              <button class="page-btn">{{ users.paginator.num_pages }}</button>
+                          </a>
+                      {% endif %}
+                  {% endif %}
+
+                  {# Стрелка "Вперед" #}
+                  <a href="?page={% if users.has_next %}{{ users.next_page_number }}{% else %}{{ users.paginator.num_pages }}{% endif %}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                    {% if not users.has_next %}class="disabled"{% endif %}>
+                      <button class="page-btn" {% if not users.has_next %}disabled{% endif %}>→</button>
+                  </a>
+                  
+                  {# Кнопка "Последняя" #}
+                  <a href="?page={{ users.paginator.num_pages }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                    {% if not users.has_next %}class="disabled"{% endif %}>
+                      <button class="page-btn" {% if not users.has_next %}disabled{% endif %}>Последняя</button>
+                  </a>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      //УРОВЕНЬ ОБРАЗОВАНИЯ
+      document.getElementById('educationLevelDropdownBtn').addEventListener('click', function() {
+        const dropdownContent = document.getElementById('educationLevelDropdownContent');
+        dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+      });
+      document.querySelectorAll('input[name="education_level"]').forEach(function(option) {
+        option.addEventListener('change', function() {
+          const selectedEducationLevels = Array.from(
+            document.querySelectorAll('input[name="education_level"]:checked')
+          ).map(opt => opt.value);
+          console.log("Выбранные уровни образования:", selectedEducationLevels);
+        });
+      });
+
+      //КУРСЫ
+      document.getElementById('gradeDropdownBtn').addEventListener('click', function() {
+        const dropdownContent = document.getElementById('gradeDropdownContent');
+        dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+      });
+      document.querySelectorAll('input[name="grade"]').forEach(function(option) {
+        option.addEventListener('change', function() {
+          const selectedGrades = Array.from(
+            document.querySelectorAll('input[name="grade"]:checked')
+          ).map(opt => opt.value);
+          console.log("Выбранные курсы:", selectedGrades);
+        });
+      });
+
+      //ПРОФИЛЬ
+      document.getElementById('profileDropdownBtn').addEventListener('click', function() {
+          const dropdownContent = document.getElementById('profileDropdownContent');
+          dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+      });
+      document.querySelectorAll('input[name="profile"]').forEach(function(option) {
+          option.addEventListener('change', function() {
+            const selectedProfiles = Array.from(
+              document.querySelectorAll('input[name="profile"]:checked')
+            ).map(opt => opt.value);
+            console.log("Выбранные профили:", selectedProfiles);
+          });
+      });
+
+      //НАПРАВЛЕНИЕ
+      document.querySelectorAll('#directionDropdownContent label').forEach(function (option) {
+        option.style.display = ''; 
+      });
+      document.getElementById('directionDropdownBtn').addEventListener('click', function () {
+          const dropdownContent = document.getElementById('directionDropdownContent');
+          dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+      });
+
+      // ФАКУЛЬТЕТ
+      document.getElementById('facultyDropdownBtn').addEventListener('click', function() {
+        const dropdownContent = document.getElementById('facultyDropdownContent');
+        dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+      });
+      document.querySelectorAll('input[name="faculty"]').forEach(function(option) {
+        option.addEventListener('change', function() {
+          const selectedFaculties = Array.from(document.querySelectorAll('input[name="faculty"]:checked')).map(opt => opt.value);
+          console.log("Выбранные факультеты:", selectedFaculties);
+        });
+      });
+
+      document.querySelectorAll('.role-option').forEach(function(option) {
+          option.addEventListener('change', function() {
+              const selectedRoles = Array.from(document.querySelectorAll('.role-option:checked')).map(opt => opt.value);
+              console.log("Выбранные роли:", selectedRoles);
+          });
+      });
+
+      document.getElementById('dropdownButton').addEventListener('click', function() {
+          const dropdownContent = document.getElementById('dropdownContent');
+          dropdownContent.style.display = dropdownContent.style.display === 'none' ? 'block' : 'none';
+      });
+
+      document.addEventListener("DOMContentLoaded", function() {
+        const toggleFiltersBtn = document.getElementById('toggleFiltersBtn');
+        toggleFiltersBtn.addEventListener('click', () => {
+          if (filtersContainer.classList.contains('show')) {
+            filtersContainer.style.maxHeight = filtersContainer.scrollHeight + 'px';
+            requestAnimationFrame(() => {
+              filtersContainer.style.maxHeight = '0';
+              filtersContainer.style.opacity = '0';
+              filtersContainer.style.padding = '0 20px';
+            });
+            filtersContainer.classList.remove('show');
+          } else {
+            filtersContainer.classList.add('show');
+            filtersContainer.style.maxHeight = '0';
+            filtersContainer.style.opacity = '0';
+            filtersContainer.style.padding = '0 20px';
+            requestAnimationFrame(() => {
+              filtersContainer.style.maxHeight = filtersContainer.scrollHeight + 'px';
+              filtersContainer.style.opacity = '1';
+              filtersContainer.style.padding = '15px 20px';
+            });
+          }
+        });
+
+        filtersContainer.addEventListener('transitionend', (event) => {
+          if (event.propertyName === 'max-height' && filtersContainer.classList.contains('show')) {
+            filtersContainer.style.maxHeight = 'none'; 
+          }
+        });
+        document.querySelectorAll('.excel-date-btn').forEach(function(btn) {
+              btn.addEventListener('click', function(e) {
+                  e.stopPropagation();
+                  let dropdown = btn.nextElementSibling;
+                  if(dropdown.style.display === 'block') {
+                      dropdown.style.display = 'none';
+                  } else {
+                      dropdown.style.display = 'block';
+                  }
+              });
+        });
+        document.body.addEventListener('click', function () {
+          if (!event.target.closest('.dropdown')) {
+            //ФАКУЛЬТЕТ
+            document.getElementById('facultyDropdownContent').style.display = 'none';
+            //НАПРАВЛЕНИЕ
+            document.getElementById('directionDropdownContent').style.display = 'none';
+            //ПРОФИЛЬ
+            document.getElementById('profileDropdownContent').style.display = 'none';
+            //КУРСЫ
+            document.getElementById('gradeDropdownContent').style.display = 'none';
+            //УРОВЕНЬ ОБРАЗОВАНИ
+            document.getElementById('educationLevelDropdownContent').style.display = 'none';
+          }
+          document.querySelectorAll('.dropdown-content-date').forEach(function(dd){
+            dd.style.display = 'none';
+          });
+        });
+
+        document.querySelectorAll('.dropdown-content-date').forEach(function(dd) {
+              dd.addEventListener('click', function (e) {
+                  e.stopPropagation();
+              });
+        });
+
+        document.querySelectorAll('.excel-date-apply').forEach(function(btn) {
+              btn.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  let form = btn.closest('form');
+                  form.submit();
+              });
+        });
+
+        document.querySelectorAll('.excel-date-clear').forEach(function(btn) {
+              btn.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  let form = btn.closest('form');
+                  form.querySelector('[name="dob_start"]').value = '';
+                  form.querySelector('[name="dob_end"]').value = '';
+                  form.submit();
+              });
+        });
+      });
+
+      window.BULK_EDIT_USERS_URL = "{% url 'bulk_edit_users' %}";
+      function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+              let cookies = document.cookie.split(';');
+              for (let i = 0; i < cookies.length; i++) {
+                  let cookie = cookies[i].trim();
+                  if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                      break;
+                  }
+              }
+          }
+          return cookieValue;
+      }
+
+      const csrftoken = getCookie('csrftoken');
+      console.log("POST URL (BULK_EDIT_USERS_URL):", window.BULK_EDIT_USERS_URL);
+      console.log("CSRF-token:", csrftoken);
+
+      // Вход в режим редактирования
+      document.getElementById('editModeBtn').addEventListener('click', function() {
+        document.querySelectorAll('.user-table td.editable').forEach(function(td) {
+          if (!td.querySelector('input') && !td.querySelector('select')) {
+            let field = td.dataset.field;
+            if (field === 'role') {
+              let roleType = td.getAttribute('data-role-type');
+              if (!roleType) roleType = "guest";
+              td.innerHTML =
+                `<select class="edit-input" data-field="role" style="width: 100%">
+                  <option value="student" ${roleType === "student" ? "selected" : ""}>Студент</option>
+                  <option value="staff" ${roleType === "staff" ? "selected" : ""}>Сотрудник</option>
+                  <option value="guest" ${roleType === "guest" ? "selected" : ""}>Гость</option>
+                </select>`;
+            } else if (field === 'date_of_birth') {
+              let oldValue = td.innerText.trim();
+              let inputType = 'date';
+              let dateValue = '';
+              if (oldValue && oldValue !== '-') {
+                let parts = oldValue.split('.');
+                if (parts.length === 3) {
+                  dateValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+              }
+              td.innerHTML = `<input type="${inputType}" value="${dateValue}" class="edit-input" data-field="${field}" style="width:90%;">`;
+            } else {
+              let oldValue = td.innerText.trim();
+              td.innerHTML = `<input type="text" value="${oldValue === '-' ? '' : oldValue}" class="edit-input" data-field="${field}" style="width:90%;">`;
+            }
+          }
+        });
+        document.getElementById('saveAllBtn').style.display = '';
+        document.getElementById('cancelEditBtn').style.display = '';
+        this.style.display = 'none';
+      });
+
+      document.getElementById('cancelEditBtn').addEventListener('click', function() {
+          window.location.reload();
+      });
+
+      document.getElementById('saveAllBtn').addEventListener('click', async function(){
+        let csrftoken = getCookie('csrftoken');
+        let rows = document.querySelectorAll('.user-table tbody tr');
+        let edits = [];
+        this.disabled = true;
+        this.textContent = 'Сохранение...';
+        rows.forEach(function(row) {
+            let userId = row.dataset.userId;
+            let userType = row.dataset.userType;
+            let fields = {};
+            
+            row.querySelectorAll('td.editable input, td.editable select').forEach(function(input) {
+                let field = input.dataset.field;
+                let value = input.value;
+                
+                if (field === 'date_of_birth' && value) {
+                    fields[field] = value;
+                } else if (field === 'role') {
+                    fields[field] = value;
+                } else {
+                    fields[field] = value || "";
+                }
+            });
+
+            if (Object.keys(fields).length > 0) {
+                edits.push({ 
+                    user_id: userId, 
+                    user_type: userType, 
+                    fields: fields 
+                });
+            }
+        });
+
+        try {
+            const response = await fetch(window.BULK_EDIT_USERS_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrftoken,
+                },
+                body: JSON.stringify({ edits: edits })
+            });
+            if (!response.ok) throw new Error('Ошибка сервера');
+            const result = await response.json();
+            if (result.status !== "ok") throw new Error(result.message);
+            const currentUrl = new URL(window.location.href);
+            const params = new URLSearchParams(currentUrl.search);
+            setTimeout(() => {
+                window.location.href = currentUrl.origin + currentUrl.pathname + '?' + params.toString();
+            }, 300);
+
+        } catch (error) {
+            console.error("Save error:", error);
+            document.getElementById('saveAllBtn').disabled = false;
+            document.getElementById('saveAllBtn').textContent = 'Сохранить изменения';
+        }
+      });
+
+      const saveBtn = document.getElementById('saveAllBtn');
+      saveBtn.removeEventListener('click', exitEditMode);
+      saveBtn.removeEventListener('click', function() {
+          window.location.reload();
+      });
+      
+      function exitEditMode() {
+        document.getElementById('editModeBtn').style.display = '';
+        document.getElementById('saveAllBtn').style.display = 'none';
+        document.getElementById('cancelEditBtn').style.display = 'none';
+      }
+
+      document.getElementById('saveAllBtn').addEventListener('click', exitEditMode);
+      document.getElementById('cancelEditBtn').addEventListener('click', exitEditMode);
+      document.getElementById('excelExportBtn').addEventListener('click', function () {
+          const form = document.querySelector('.filters-form');
+          const params = new URLSearchParams(new FormData(form));
+          params.delete('page');
+          const exportUrl = "{% url 'export_to_excel' %}?" + params.toString();
+          window.location.href = exportUrl;
+      });
+
+      document.getElementById('reset-filters').addEventListener('click', function() {
+          const url = new URL(window.location.href);
+          url.search = '';
+          window.location.href = url.toString();
+      });
+
+    </script>
+  </body>
+{% endblock %}
+

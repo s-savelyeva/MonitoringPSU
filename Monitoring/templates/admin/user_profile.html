@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+<script async src="{% static 'js/script.js' %}"></script>
+{% block title %}Мониторинг{% endblock %}
+{% block content %}
+    <div id="body-inner">
+        <nav id="nav-bar">
+            <a href="{% url 'admin_users' %}">Пользователи</a>
+            <a href="{% url 'edit_test_list' %}">Тесты</a>
+            <a href="{% url 'statistics' %}">Статистика</a>
+            <a href="{% url 'data_editing' %}">Редактирование данных</a>
+        </nav>
+        <main id="content">
+            <div class="up-content">
+                <div class="title">Профиль</div>
+                <div class="profile" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p class="fio">{{ user.get_full_name }}
+                        {% if student_profile %}
+                            {{ student_profile.patronymic }}
+                        {% elif staff_profile %}
+                            {{ staff_profile.patronymic }}
+                        {% elif guest_profile %}
+                            {{ guest_profile.patronymic }}
+                        {% endif %}
+                        </p>
+                        {% if student_profile %}
+                            <p class="info">
+                                <table class="profile-table">
+                                    <tbody>
+                                        <tr>
+                                            <td>Дата рождения</td>
+                                            <td>{{ student_profile.date_of_birth|date:"d.m.Y" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Роль</td>
+                                            <td>{{ student_profile.role }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Факультет</td>
+                                            <td>{{ student_profile.faculty }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Направление</td>
+                                            <td>{{ student_profile.direction }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Профиль</td>
+                                            <td>{{ student_profile.profile }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Курс</td>
+                                            <td>{{ student_profile.grade }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Форма обучения</td>
+                                            <td>{{ student_profile.study_form }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Уровень образования</td>
+                                            <td>{{ student_profile.education_level }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </p>
+                        {% elif staff_profile %}
+                            <p class="info">
+                                <table class="profile-table">
+                                    <tbody>
+                                        <tr>
+                                            <td>Дата рождения</td>
+                                            <td>{{ staff_profile.date_of_birth|date:"d.m.Y" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Роль</td>
+                                            <td>{{ staff_profile.role }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Факультет</td>
+                                            <td>{{ staff_profile.faculty }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </p>
+                        {% elif guest_profile %}
+                            <p class="info">
+                                <table class="profile-table">
+                                    <tbody>
+                                        <tr>
+                                            <td>Дата рождения</td>
+                                            <td>{{ guest_profile.date_of_birth|date:"d.m.Y" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Роль</td>
+                                            <td>{{ guest_profile.role }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </p>
+                        {% else %}
+                            <p>Профиль не найден.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="up-buttons">
+                    <div class="delete-class">
+                        <form method="POST" action="{% url 'delete_user' user.id %}" id="deleteForm">
+                            {% csrf_token %}
+                            <button type="button" id="deleteBtn" class="btn-delete">Удалить пользователя</button>
+                        </form>
+                    </div>
+                    <div class="save">
+                        <form method="POST" action="{% url 'export_to_excel_user' %}" id="exportForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="export" value="true">
+                            <input type="hidden" name="selected_test" value="{{ selected_test }}">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <button type="submit" id="uploadBtn" class="save-btn">Выгрузить в файл</button>
+                        </form>
+                        <a href="{% url 'edit_user_profile' user.id %}" class="btn-save">Редактировать</a>
+                        <input type="file" id="fileInput">
+                    </div>
+                </div>
+                <div class="choice">
+                    <form method="POST" id="testFilterForm">
+                        {% csrf_token %}
+                        <p class="info">Вывести результаты теста:</p>
+                        <select name="selected_test" class="filter">
+                            <option value="">Выберите тест</option>
+                            {% for test in all_tests %}
+                                <option value="{{ test.id }}" {% if selected_test == test.id|stringformat:"s" %}selected{% endif %}>{{ test.title }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn-show">Показать</button>
+                    </form>
+                </div>
+                {% if selected_test_results %}
+                    <div class="table">
+                        <table class="result-table">
+                            <thead>
+                                <tr>
+                                    <th>Название теста</th>
+                                    <th>Дата</th>
+                                    {% for question in selected_test_results.test.questions.all %}
+                                        <th>Вопрос {{ forloop.counter }}</th>
+                                    {% endfor %}
+                                    <th>Итог</th>
+                                    <th>Результат</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for test_result in user_tests %}
+                                <tr>
+                                    <td>{{ test_result.test.title }}</td>
+                                    <td>{{ test_result.completed_at|date:"d.m.Y" }}</td>
+                                    {% for question in test_result.test.questions.all %}
+                                        <td>
+                                            {% with question_score=0 %}
+                                                {% for answer in test_result.user_answers.all %}
+                                                    {% if answer.question == question %}
+                                                        {% with question_score=answer.score %}
+                                                            {{ question_score }}
+                                                        {% endwith %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endwith %}
+                                        </td>
+                                    {% endfor %}
+                                    <td>{{ test_result.result }}</td>
+                                    <td>{{ test_result.result_description }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </main>
+        <div id="deleteConfirmModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="modal-message">Вы уверены, что хотите удалить пользователя? <br> Это действие нельзя отменить!</span>
+                <div class="modal-buttons">
+                    <button class="modal-okBtn" id="confirmDelete">Да</button>
+                    <button class="modal-No" id="cancelDelete">Нет</button>
+                </div>
+            </div>
+        </div>
+        <div id="errorModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="modal-message">Ошибка: Не выбран тест для выгрузки!</span>
+                <div class="modal-buttons">
+                    <button class="modal-okBtn" id="closeErrorModal">ОК</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    document.getElementById('deleteBtn').addEventListener('click', function(e) {
+        document.getElementById('deleteConfirmModal').style.display = 'flex';
+    });
+    document.getElementById('confirmDelete').addEventListener('click', function(e) {
+        document.getElementById('deleteForm').submit();
+    });
+    document.getElementById('cancelDelete').addEventListener('click', function(e) {
+        document.getElementById('deleteConfirmModal').style.display = 'none';
+    });
+    document.getElementById('uploadBtn').addEventListener('click', function(e) {
+        const selectedTest = document.querySelector('select[name="selected_test"]').value;
+        if (!selectedTest) {
+            document.getElementById('errorModal').style.display = 'flex';
+            e.preventDefault();
+        } else {
+            document.getElementById('exportForm').submit();
+        }
+    });
+
+    document.getElementById('closeErrorModal').addEventListener('click', function() {
+        document.getElementById('errorModal').style.display = 'none';
+    });
+</script>
+</body>
+{% endblock %}

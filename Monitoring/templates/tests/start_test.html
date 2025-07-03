@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+<script src="{% static 'js/script.js' %}"></script>
+{% load extra_tags %}
+{% load custom_filters %}
+
+{% block title %}Тест{% endblock %}
+{% block content %}
+<div id="body-inner">
+    <nav id="nav-bar">
+    </nav>  
+    <form method="post">
+        {% csrf_token %}
+        {% if error_message %}
+        <div id="errorModal" class="modal" style="display: block;">
+            <div class="modal-content">
+                <span class="close-btn">&times;</span>
+                <p>{{ error_message }}</p>
+                <button type="button" class="modal-okBtn">Ок</button>
+            </div>
+        </div>
+        {% endif %}
+        <div id="timeoutModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="modal-message">Время прохождения теста истекло. Баллы на все не пройденные вопросы равны нулю.</span>
+                <button type="button" class="timeout-okBtn">Ок</button>
+            </div>
+        </div>     
+        <div id="confirmCloseModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <p>Вы точно хотите завершить тест?</p>
+                <button class="modal-okBtn" id="confirmCloseYes">Да</button>
+                <button class="modal-No" id="confirmCloseNo">Нет</button>
+            </div>
+        </div>
+           
+        {% if test_time %}
+            <div class="text-creeate-new-test">
+                Оставшееся время: <span class="timer-display"></span>
+            </div>
+        {% endif %}
+        <div class="test-body">
+            <div class="test-title">
+                <div class="question-header">
+                    <div class="question-number">
+                        <div class="number">{{ question_index }}</div>
+                    </div>
+                    {% if question.is_mandatory %}
+                        <span class="mandatory-label">*Обязательный вопрос</span>
+                    {% endif %}
+                </div>
+                <div class="title-test">{{ question.question_text }}</div>
+            </div>
+            {% if question.question_type == 'choice' %}
+                <div class="choice-options">
+                    {% for choice in question.choices.all %}
+                        <button type="submit" name="{{ question.id }}" value="{{ choice.id }}"
+                            class="answer-btn option-square {% if selected_answer == choice.id %}active{% endif %}">
+                        {{ choice.choice_text }}
+                        </button>
+                        <br>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="test-text">
+                    <div class="text-left">{{ scale.min_sign }}</div>
+                    <div class="text-right">{{ scale.max_sign }}</div>
+                </div>
+                {% if scale.type == 'default' %}
+                    <div class="btn-line">
+                        {% for i in max_range %}
+                            <button type="submit" name="{{ question.id }}" value="{{ i }}" id="option_{{ i }}"
+                                class="answer-btn scale-square {% if selected_answer|stringformat:'i' == i|stringformat:'i' %}active{% endif %}">
+                                {{ i }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if scale.type == 'minus' %}
+                    <div class="btn-line">
+                        {% for i in minus %}
+                            <button type="submit" name="{{ question.id }}" value="{{ i }}" id="option_{{ i }}"
+                                class="answer-btn scale-square {% if selected_answer|stringformat:'i' == i|stringformat:'i' %}active{% endif %}">
+                                {{ i }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if scale.type == 'twoside' %}
+                    <div class="btn-line">
+                        {% for i in twoside %}
+                            <button type="submit" name="{{ question.id }}" value="{{ i }}" id="option_{{ i }}"
+                                class="answer-btn scale-square {% if selected_answer|stringformat:'i' == i|stringformat:'i' %}active{% endif %}">
+                                {{ i|abs_val }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <div class="question-nav">
+            <div class="left-button">
+                {% if question_index > 1 %}
+                    <button type="submit" name="back" class="back">Назад</button>
+                {% else %}
+                    <button class="back" disabled>Назад</button>
+                {% endif %}
+            </div>
+
+            <div class="question-nav-container">
+                {% if 1 == question_index %}
+                    <button class="question-page question-square active{% if 1 in answered_question_ids %} answered{% endif %}">1</button>
+                {% else %}
+                    <a href="{% url 'start_test' test_id=test.id question_index=1 %}" class="question-page question-square{% if 1 in answered_question_ids %} answered{% endif %}">1</a>
+                {% endif %}
+                
+                {% if question_index > 4 %}
+                    <button class="question-page question-square dots">…</button>
+                {% endif %}
+                    
+                {% for num in question_index|add:"-2"|int_range %}
+                    {% if num > 1 and num >= question_index|add:"-2" and num < question_index %}
+                        <a href="{% url 'start_test' test_id=test.id question_index=num %}" class="question-page question-square{% if num in answered_question_ids %} answered{% endif %}">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if question_index != 1 and question_index != questions_count %}
+                    <button class="question-page question-square active{% if question_index in answered_question_ids %} answered{% endif %}">{{ question_index }}</button>
+                {% endif %}
+
+                {% for num in question_index|add:"2"|int_range %}
+                    {% if num > question_index and num < questions_count %}
+                        <a href="{% url 'start_test' test_id=test.id question_index=num %}" class="question-page question-square{% if num in answered_question_ids %} answered{% endif %}">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if question_index < questions_count|add:"-3" %}
+                    <button class="question-page question-square dots">…</button>
+                {% endif %}
+
+                {% if questions_count > 1 %}
+                    {% if questions_count == question_index %}
+                        <button class="question-page question-square active{% if questions_count in answered_question_ids %} answered{% endif %}">{{ questions_count }}</button>
+                    {% else %}
+                        <a href="{% url 'start_test' test_id=test.id question_index=questions_count %}" class="question-page question-square{% if questions_count in answered_question_ids %} answered{% endif %}">{{ questions_count }}</a>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <div class="right-button">
+                {% if question_index < questions_count %}
+                    <button type="submit" name="next" class="next">Далее</button>
+                {% else %}
+                    <button class="next" disabled>Далее</button>
+                {% endif %}
+                <br>
+                <button type="submit" name="close" class="close">Завершить</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    var questionsAnswers = JSON.parse('{{ questions_list|escapejs }}');
+    const testTime = parseInt("{{ test_time|default:'0' }}");
+    const startTimeStr = '{{ start_time|date:"Y-m-d H:i:s" }}';
+    const startTime = new Date(startTimeStr.replace(/-/g, '/'));
+    let remainingSeconds = 0;
+    let form = document.querySelector('form');
+    let submitted = false;
+
+    if (testTime && testTime > 0 && startTime) {
+        const endTime = new Date(startTime.getTime() + testTime * 60 * 1000);
+        remainingSeconds = Math.floor((endTime - new Date()) / 1000);
+        if (remainingSeconds <= 0) {
+            finishTest();
+        } else {
+            startTimer();
+        }
+    }
+
+    function startTimer() {
+        const timerInterval = setInterval(() => {
+            if (remainingSeconds <= 0) {
+                clearInterval(timerInterval);
+                finishTest();
+            } else {
+                remainingSeconds--;
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+                document.querySelector('.timer-display').textContent = `${minutes} мин ${seconds} сек`;
+            }
+        }, 1000);
+    }
+
+    function finishTest() {
+        if (submitted) return;
+        submitted = true;
+        showTimeoutModal(function(){
+            questionsAnswers.forEach(qId => {
+                if (!document.querySelector(`input[name="${qId}"]:checked`)) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = qId;
+                    input.value = '0';
+                    form.appendChild(input);
+                }
+            });
+            const finishField = document.createElement('input');
+            finishField.type = 'hidden';
+            finishField.name = '_force_finish';
+            finishField.value = '1';
+            form.appendChild(finishField);
+            form.submit();
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const form = document.querySelector("form");
+        const confirmModal = document.getElementById("confirmCloseModal");
+        const errorModal = document.getElementById("errorModal");
+        const closeBtn = document.querySelector('button[name="close"]');
+        const yesBtn = document.getElementById("confirmCloseYes");
+        const noBtn = document.getElementById("confirmCloseNo");
+        const errorOkBtn = errorModal ? errorModal.querySelector(".modal-okBtn") : null;
+        if (closeBtn) {
+            closeBtn.addEventListener("click", function(e) {
+                e.preventDefault();
+                confirmModal.style.display = "block";
+            });
+        }
+
+        document.querySelectorAll('.answer-btn.scale-square').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                document.querySelectorAll('.answer-btn.scale-square').forEach(b => {
+                    b.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+
+        if (yesBtn) {
+            yesBtn.addEventListener("click", function() {
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "close";
+                input.value = "1";
+                form.appendChild(input);
+                const mandatoryQuestions = Array.from(document.querySelectorAll("form [data-mandatory='true']")).map(q => q.getAttribute("name") || q.id);
+                let unansweredMandatory = mandatoryQuestions.filter(qName => {
+                    const inputChecked = document.querySelector(`input[name="${qName}"]:checked`);
+                    return !inputChecked;
+                });
+                if (unansweredMandatory.length > 0) {
+                    confirmModal.style.display = "none";
+                    if (errorModal) {
+                        errorModal.style.display = "block";
+                    }
+                } else {
+                    form.submit();
+                }
+            });
+        }
+
+        if (noBtn) {
+            noBtn.addEventListener("click", function() {
+                confirmModal.style.display = "none";
+            });
+        }
+        if (errorOkBtn) {
+            errorOkBtn.addEventListener("click", function() {
+                errorModal.style.display = "none";
+            });
+        }
+
+        window.addEventListener("click", function(event) {
+            if (event.target == confirmModal) {
+                confirmModal.style.display = "none";
+            }
+            if (errorModal && event.target == errorModal) {
+                errorModal.style.display = "none";
+            }
+        });
+
+        const answerButtons = form.querySelectorAll('.answer-btn');
+        answerButtons.forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                if(btn.name && !['next','close','back'].includes(btn.name)) {
+                    e.preventDefault();
+                    answerButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    setTimeout(function() {
+                        let hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = btn.name;
+                        hiddenInput.value = btn.value;
+                        form.appendChild(hiddenInput);
+                        form.submit();
+                    }, 80);
+                }
+            });
+        });
+    });
+
+    function showTimeoutModal(autofinishCb) {
+        var modal = document.getElementById('timeoutModal');
+        var okBtn = modal.querySelector('.timeout-okBtn');
+        modal.style.display = 'block';
+        okBtn.onclick = function() {
+            modal.style.display = 'none';
+            autofinishCb();
+        };
+    }
+</script>
+{% endblock %}
+
+  

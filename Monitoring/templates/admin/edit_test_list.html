@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+{% block title %}Редактирование тестов{% endblock %}
+{% block content %}
+<body>
+    <div id="body-inner">
+        <nav id="nav-bar">
+            <a href="{% url 'admin_users' %}">Пользователи</a>
+            <a href="{% url 'edit_test_list' %}">Тесты</a>
+            <a href="{% url 'statistics' %}">Статистика</a>
+            <a href="{% url 'data_editing' %}">Редактирование данных</a>
+        </nav>
+        <div class="up-content">
+            <div class="statistics-controls">
+                <div class="title">Тесты</div>
+                <h3>
+                    <button class="button-create-test" onclick="location.href='{% url 'constructor' %}'">Создать тест</button>
+                </h3>
+                <div class="scroll-controls">
+                    <div class="container test-list" id="testScrollContainer">
+                        {% for test in tests %}
+                            <div class="box">
+                                <div class="box-in-box">
+                                    <img src="{% static 'image/logo_test.png' %}" alt="Тест" class="test-icon">
+                                    <p class="text-red-emotional">{{ test.title }}</p>
+                                </div>
+                                <div class="button-time-container">  {# Новый контейнер для кнопок и времени #}
+                                    <p class="text_time">
+                                        {% if test.time %}
+                                            Время: {{ test.time }} мин
+                                        {% else %}
+                                            Время: -
+                                        {% endif %}
+                                    </p>
+                                    <div class="button-container">
+                                        <a class="button-start-test" href="{% url 'edit_test' test.id %}">Редактировать</a>
+                                        <button class="button-result-test" data-url="{% url 'delete_test' test_id=test.id %}" onclick="openModal(this)">Удалить</button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="errorModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <span class="modal-message" id="modal-message">Вы уверены, что хотите удалить тест?</span>
+            <div class="modal-button-container">
+                <button id="modal-okBtn" type="button" class="modal-okBtn" onclick="confirmDelete()">Ок</button>
+                <button id="modal-cancelBtn" type="button" class="modal-cancelBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('testScrollContainer');
+        const scrollLeftBtn = document.getElementById('scrollLeft');
+        const scrollRightBtn = document.getElementById('scrollRight');
+        if (scrollLeftBtn) {
+            scrollLeftBtn.onclick = function() {
+                container.scrollBy({left: -300, behavior: 'smooth'});
+            };
+        }
+        if (scrollRightBtn) {
+            scrollRightBtn.onclick = function() {
+                container.scrollBy({left: 300, behavior: 'smooth'});
+            };
+        }
+        let deleteUrl;
+        function openModal(button) {
+            deleteUrl = button.getAttribute('data-url');
+            document.getElementById('errorModal').style.display = 'block';
+        }
+        function confirmDelete() {
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('Ошибка при удалении теста.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+        document.querySelector('.close-btn').onclick = function() {
+            document.getElementById('errorModal').style.display = 'none';
+        };
+        document.getElementById('modal-cancelBtn').onclick = function() {
+            document.getElementById('errorModal').style.display = 'none';
+        };
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('errorModal')) {
+                document.getElementById('errorModal').style.display = 'none';
+            }
+        };
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+        container.addEventListener('mousedown', (e) => {
+            isDown = true;
+            container.classList.add('active');
+            container.style.userSelect = 'none';
+            startX = e.pageX - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
+        });
+        container.addEventListener('mouseleave', () => {
+            isDown = false;
+            container.classList.remove('active');
+            container.style.userSelect = '';
+        });
+        container.addEventListener('mouseup', () => {
+            isDown = false;
+            container.classList.remove('active');
+            container.style.userSelect = '';
+        });
+        container.addEventListener('mousemove', (e) => {
+            if(!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - container.offsetLeft;
+            const walk = (x - startX) * 2;
+            container.scrollLeft = scrollLeft - walk;
+        });
+        container.addEventListener('touchstart', (e) => {
+            isDown = true;
+            startX = e.touches[0].pageX - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
+        });
+        container.addEventListener('touchend', () => {
+            isDown = false;
+        });
+        container.addEventListener('touchmove', (e) => {
+            if(!isDown) return;
+            const x = e.touches[0].pageX - container.offsetLeft;
+            const walk = (x - startX) * 2;
+            container.scrollLeft = scrollLeft - walk;
+        });
+    </script>
+</body>
+{% endblock %}

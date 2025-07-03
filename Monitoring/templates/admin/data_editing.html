@@ -1,0 +1,629 @@
+
+{% extends "base.html" %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/statistics.css' %}">
+{% block title %}Редактирование данных{% endblock %}
+{% block content %}
+<body>
+    <div id="body-inner">
+        <nav id="nav-bar">
+            <a href="{% url 'admin_users' %}">Пользователи</a>
+            <a href="{% url 'edit_test_list' %}">Тесты</a>
+            <a href="{% url 'statistics' %}">Статистика</a>
+            <a href="{% url 'data_editing' %}">Редактирование данных</a>
+        </nav>
+        <div class="up-content">
+            <div class="statistics-controls">
+                <div class="title">Редактирование данных</div>
+                <div class="level-btns">
+                    {% for key, title in levels %}
+                    <a href="?level={{ key }}" class="btn{% if selected == key %} selected{% endif %}" style="width: 250px;">{{ title }}</a>
+                    {% if not loop.last %}
+                        <span class="separator"></span>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% if selected %}
+                <div id="faculties-list">
+                    <div class="control-labels">
+                        {% if selected == 'bachelor_specialist' %}
+                            Направления бакалавров и специалистов
+                        {% elif selected == 'master' %}
+                            Направления магистров
+                        {% elif selected == 'phd' %}
+                            Направления аспирантов
+                        {% endif %}
+                    </div>
+                    <div style="margin-bottom:1em;">
+                        <button class="edit-btn" onclick="enableEditingAll(this)">Редактировать</button>
+                        <button class="save-btn" onclick="saveChangesAll(this)" style="display:none;">Сохранить</button>
+                        <button class="cancel-btn" onclick="cancelEditingAll()" style="display:none;">Отмена</button>
+                        <button class="add-faculty-btn" type="button" onclick="addFaculty()" style="display:inline-block;"> Добавить новый факультет</button>
+                    </div>
+                    {% if not faculties %}
+                    <div class="no-faculty">Не найдено ни одного факультета. Нажмите «Редактировать» и создайте первый факультет.</div>
+                    {% endif %}
+                    {% for item in faculties %}
+                    <div class="faculty-block" data-faculty-id="{{ item.faculty.id }}">
+                        <div class="faculty-title flex items-center gap-2">
+                            <span class="faculty-name-input">{{ item.faculty.name }}</span>
+                            {% if editable %}
+                                <button class="delete" style="margin-left: 20px;" title="Удалить факультет" onclick="removeFaculty(this)">Удалить факультет</button>
+                            {% endif %}
+                            <button class="add-direction-btn" type="button" onclick="addDirection(this)">Добавить новое направление</button>
+                        </div>
+                        <table class="faculty-table">
+                            <thead>
+                                <tr>
+                                    <th class="faculty-tr">Название направления</th>
+                                    <th class="faculty-tr">Форма обучения</th>
+                                    <th class="faculty-tr">Уровень образования</th>
+                                    <th class="faculty-tr">Количество курсов</th>
+                                    <th class="faculty-tr"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for program in item.programs %}
+                                <tr class="direction-row" data-direction-id="{{ program.direction.id }}" data-direction-model="{{ selected }}">
+                                    <td class="program-name editable"
+                                        data-direction-id="{{ program.direction.id }}"
+                                        data-direction-model="{{ selected }}"
+                                        data-field="direction_name"
+                                        data-original-name="{{ program.direction.direction_name }}">
+                                        {{ program.direction.direction_name }}
+                                    </td>
+                                    <td colspan="3" class="direction-header">
+                                        <button class="add-profile-btn" type="button" onclick="addProfile(this)" style="display:inline-block;">Добавить новый профиль</button>
+                                    </td>
+                                    <td>
+                                        {% if editable %}
+                                            <span class="delete-x" title="Удалить направление" onclick="removeDirection(this)">×</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% for profile in program.profiles %}
+                                <tr class="profile-row" data-profile-id="{{ profile.id }}">
+                                    <td class="program-td editable"
+                                        data-program-id="profile:{{ profile.id }}:{{ selected }}"
+                                        data-field="profile">
+                                        {{ profile.profile }}
+                                    </td>
+                                    <td class="program-td editable"
+                                        data-program-id="profile:{{ profile.id }}:{{ selected }}"
+                                        data-field="education_form">{{ profile.get_education_form_display }}</td>
+                                    <td class="program-td {% if selected == 'bachelor_specialist' %}editable{% endif %}"
+                                        {% if selected == 'bachelor_specialist' %}data-program-id="profile:{{ profile.id }}:{{ selected }}"{% endif %}
+                                        {% if selected == 'bachelor_specialist' %}data-field="level"{% endif %}>
+                                        {% if selected == 'bachelor_specialist' %}{{ profile.get_level_display }}{% else %}—{% endif %}
+                                    </td>
+                                    <td class="program-td editable"
+                                        data-program-id="profile:{{ profile.id }}:{{ selected }}"
+                                        data-field="number_of_courses">{{ profile.number_of_courses }}</td>
+                                    <td>
+                                        {% if editable %}
+                                            <span class="delete-x" title="Удалить профиль" onclick="removeProfile(this)">×</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div id="uploadModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="modal-message"></span>
+            <button id="modalOkBtn" class="modal-okBtn">ОК</button>
+        </div>
+    </div>
+
+<script>
+    function tempid(prefix) {
+        return prefix + "_" + Math.random().toString(36).substr(2,9);
+    }
+
+    function showModal(msg) {
+        const modal = document.getElementById('uploadModal');
+        modal.querySelector('.modal-message').textContent = msg;
+        modal.style.display = 'flex';
+
+        function closeModal() {
+            modal.style.display = 'none';
+            modal.querySelector('#modalOkBtn').removeEventListener('click', closeModal);
+        }
+        document.getElementById('modalOkBtn').addEventListener('click', closeModal);
+    }
+
+    function enableEditingAll(btn) {
+        document.querySelectorAll('td.editable').forEach(td => {
+            if (!td.dataset.originalName) {
+                td.dataset.originalName = td.innerText.trim();
+            }
+            let field = td.dataset.field;
+            if (field === 'direction_name') {
+                let input = document.createElement('input');
+                input.value = td.dataset.originalName;
+                input.classList.add('direct-name');
+                td.innerHTML = '';
+                td.appendChild(input);
+            } else if (field === 'education_form') {
+                let select = document.createElement('select');
+                let options = [
+                    ['очная', 'Очная'],
+                    ['заочная', 'Заочная'],
+                    ['очно-заочная', 'Очно-заочная'],
+                    ['дистанционная', 'Дистанционная']
+                ];
+                let cellText = td.dataset.originalName;
+                options.forEach(opt => {
+                    let o = document.createElement('option');
+                    o.value = opt[0];
+                    o.text = opt[1];
+                    if (cellText === opt[1] || cellText === opt[0]) {
+                        o.selected = true;
+                    }
+                    select.appendChild(o);
+                });
+                td.innerHTML = '';
+                td.appendChild(select);
+            } else {
+                let input = document.createElement('input');
+                input.value = td.dataset.originalName; 
+                input.type = (field === 'number_of_courses') ? 'number' : 'text';
+                // Для профиля
+                if (field === 'profile') input.classList.add('prof-name');
+                // Для количества курсов
+                if (field === 'number_of_courses') input.classList.add('course');
+                // Для уровня образования
+                if (field === 'level') input.classList.add('course');
+                td.innerHTML = '';
+                td.appendChild(input);
+            }
+        });
+
+        document.querySelectorAll('.faculty-title .faculty-name-input').forEach(span => {
+            if (span.tagName === 'INPUT') return;
+            const orig = span.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = orig;
+            input.className = 'faculty-name-input';
+            input.dataset.originalName = orig;
+            span.replaceWith(input);
+            });
+
+        document.querySelectorAll('.delete-x').forEach(icon => {
+            icon.style.display = 'inline';
+        });
+
+        document.querySelectorAll('.delete').forEach(icon => {
+            icon.style.display = 'inline';
+        });
+        
+        btn.style.display = "none";
+        document.querySelector('.save-btn').style.display = 'inline-block';
+        document.querySelector('.cancel-btn').style.display = 'inline-block';
+        document.querySelectorAll('.add-direction-btn').forEach(btn => btn.style.display = 'inline-block');
+        document.querySelectorAll('.add-profile-btn').forEach(btn => btn.style.display = 'inline-block');
+        document.querySelector('.add-faculty-btn').style.display = 'inline-block';
+    }
+
+    function addFaculty() {
+        const facultiesControls = document.querySelector('.statistics-controls');
+        const facultiesList = document.querySelector('#faculties-list');
+        const facultyId = tempid('newfaculty');
+        let facultyBlock = document.createElement('div');
+        facultyBlock.className = "faculty-block new-faculty-block";
+        facultyBlock.setAttribute("data-faculty-tempid", facultyId);
+        facultyBlock.innerHTML = `
+            <div class="faculty-title flex items-center gap-2">
+                <input type="text" class="faculty-name-input" placeholder="Название факультета" data-new-faculty="1">
+                <button class="delete" title="Удалить факультет" onclick="removeFaculty(this)" style="display: inline;">Удалить факультет</button>
+                <button class="add-direction-btn" type="button" onclick="addDirection(this)" style="display:inline-block;">Добавить новое направление</button>
+            </div>
+            <table class="faculty-table">
+                <thead>
+                    <tr>
+                        <th class="faculty-tr">Название направления</th>
+                        <th class="faculty-tr">Форма обучения</th>
+                        <th class="faculty-tr">Уровень образования</th>
+                        <th class="faculty-tr">Количество курсов</th>
+                        <th class="faculty-tr"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        `;
+        if (facultiesList) {
+            const firstFaculty = facultiesList.querySelector('.faculty-block');
+            if (firstFaculty) {
+                facultiesList.insertBefore(facultyBlock, firstFaculty);
+            } else {
+                facultiesList.appendChild(facultyBlock);
+            }
+        } else {
+            facultiesControls.appendChild(facultyBlock);
+        }
+    }
+
+    function removeFaculty(btn) {
+        const fblock = btn.closest('.faculty-block');
+        fblock.classList.add('deleted');
+        fblock.style.display = 'none';
+    }
+
+    function addDirection(btn) {
+        const facultyBlock = btn.closest('.faculty-block');
+        const tbody = facultyBlock.querySelector('tbody');
+        const selected = "{{ selected }}";
+        const directionId = tempid('newdir');
+        const row = document.createElement('tr');
+        row.className = "direction-row new-direction";
+        row.setAttribute("data-direction-tempid", directionId);
+        row.setAttribute("data-direction-model", selected);
+        row.innerHTML = `
+            <td class="program-name editable" data-field="direction_name" data-new-direction="1">
+                <input class="direct-name" type="text" value="Новое направление">
+            </td>
+            <td colspan="3" class="direction-header">
+                <button class="add-profile-btn" type="button" onclick="addProfile(this)" style="display:inline-block;">Добавить новый профиль</button>
+            </td>
+            <td>
+                <span class="delete-x" title="Удалить направление" onclick="removeDirection(this)" style="display: inline;">×</span>
+            </td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    function addProfile(btn) {
+        const dirRow = btn.closest('.direction-row');
+        const tbody = dirRow.parentNode;
+        const directionId = dirRow.getAttribute('data-direction-id') || dirRow.getAttribute('data-direction-tempid');
+        const dirModel = dirRow.getAttribute('data-direction-model');
+        const selected = "{{ selected }}";
+        const profileId = tempid('newprofile');
+        const showLevel = (selected === 'bachelor_specialist');
+        let levelCell = showLevel
+            ? `<td class="program-td editable" data-field="level" data-new-profile="1" data-new-profile-id="${profileId}">
+                <input class="course" type="text" value="Бакалавриат">
+            </td>`
+            : `<td class="program-td">—</td>`;
+        const row = document.createElement('tr');
+        row.className = "profile-row new-profile";
+        row.setAttribute("data-profile-tempid", profileId);
+        row.setAttribute("data-parent-direction", directionId);
+        row.innerHTML = `
+            <td class="program-td editable" data-field="profile" data-new-profile="1">
+                <input class="prof-name" type="text" value="Новый профиль">
+            </td>
+            <td class="program-td editable" data-field="education_form" data-new-profile="1">
+                <select>
+                    <option value="очная">Очная</option>
+                    <option value="заочная">Заочная</option>
+                    <option value="очно-заочная">Очно-заочная</option>
+                    <option value="дистанционная">Дистанционная</option>
+                </select>
+            </td>
+            ${levelCell}
+            <td class="program-td editable" data-field="number_of_courses" data-new-profile="1">
+                <input class="course" type="number" min="1" value="">
+            </td>
+            <td><span class="delete-x" title="Удалить профиль" onclick="removeProfile(this)" style="display: inline;">×</span></td>
+        `;
+        let next = dirRow.nextSibling;
+        let insertBefore = null;
+        while (next) {
+            if (next.classList && (next.classList.contains('direction-row') || next.classList.contains('new-direction'))) {
+                insertBefore = next;
+                break;
+            }
+            next = next.nextSibling;
+        }
+        if (insertBefore) {
+            tbody.insertBefore(row, insertBefore);
+        } else {
+            tbody.appendChild(row);
+        }
+    }
+
+    function removeDirection(btn) {
+        const row = btn.closest('tr.direction-row');
+        row.classList.add('deleted');
+        row.style.display = 'none';
+        let next = row.nextSibling;
+        while (next && (next.classList && next.classList.contains('profile-row'))) {
+            next.classList.add('deleted');
+            next.style.display = 'none';
+            next = next.nextSibling;
+        }
+    }
+
+    function removeProfile(btn) {
+        const row = btn.closest('tr.profile-row');
+        row.classList.add('deleted');
+        row.style.display = 'none';
+    }
+
+    function saveChangesAll(saveBtn) {
+        let programs = {};
+        let nameChanges = [];
+        let newDirections = [];
+        let newProfiles = [];
+        let deletedDirections = [];
+        let deletedProfiles = [];
+        let newFaculties = [];
+        let deletedFaculties = [];
+        let validationError = false;
+        let facultyNameChanges = [];
+        document.querySelectorAll('.faculty-block:not(.new-faculty-block)').forEach(fblock => {
+            if (fblock.classList.contains('deleted')) return;
+            const facultyId = fblock.getAttribute('data-faculty-id');
+            const input = fblock.querySelector('.faculty-title input.faculty-name-input');
+            if (input) {
+                const newVal = input.value.trim();
+                const origVal = input.dataset.originalName || '';
+                if (newVal && newVal !== origVal) {
+                    facultyNameChanges.push({faculty_id: facultyId, new_name: newVal});
+                }
+            }
+        });
+        document.querySelectorAll('.faculty-block.new-faculty-block').forEach(fblock => {
+            if (fblock.classList.contains('deleted')) {
+                deletedFaculties.push({
+                    tempid: fblock.getAttribute('data-faculty-tempid'),
+                    is_new: true
+                });
+                return;
+            }
+            let fname = fblock.querySelector('.faculty-name-input').value.trim();
+            if (fname) {
+                let newFacultyObj = {
+                    name: fname,
+                    directions: []
+                };
+                fblock.querySelectorAll('tr.new-direction').forEach(tr => {
+                    if (tr.classList.contains('deleted')) return;
+                    const directionName = tr.querySelector('td[data-field="direction_name"] input').value;
+                    const directionModel = tr.getAttribute('data-direction-model');
+                    const directionTempid = tr.getAttribute('data-direction-tempid');
+                    const directionObj = {
+                        direction_name: directionName,
+                        direction_model: directionModel,
+                        tempid: directionTempid,
+                        profiles: []
+                    };
+                    fblock.querySelectorAll(`tr.profile-row.new-profile[data-parent-direction="${directionTempid}"]`).forEach(ptr => {
+                        if (ptr.classList.contains('deleted')) return;
+                        const fields = {};
+                        ptr.querySelectorAll('td[data-new-profile="1"]').forEach(td => {
+                            const field = td.dataset.field;
+                            const input = td.querySelector('input,select');
+                            fields[field] = input ? input.value.trim() : '';
+                        });
+                        if (!fields.profile || !fields.education_form ||
+                            (directionModel === "bachelor_specialist" && !fields.level) ||
+                            !fields.number_of_courses || isNaN(fields.number_of_courses) || Number(fields.number_of_courses) < 1) {
+                            validationError = true;
+                        }
+                        directionObj.profiles.push(fields);
+                    });
+                    newFacultyObj.directions.push(directionObj);
+                });
+                newFaculties.push(newFacultyObj);
+            }
+        });
+
+        document.querySelectorAll('.faculty-block:not(.new-faculty-block).deleted').forEach(fblock => {
+            deletedFaculties.push({
+                id: fblock.getAttribute('data-faculty-id'),
+                is_new: false,
+                level: '{{ selected }}'
+            });
+        });
+
+        document.querySelectorAll('td.editable[data-field="direction_name"]').forEach(td => {
+            if (td.dataset.newDirection) return;
+            const directionId = td.closest('tr').getAttribute('data-direction-id');
+            const directionModel = td.closest('tr').getAttribute('data-direction-model');
+            const originalName = td.dataset.originalName;
+            const tr = td.closest('tr');
+            if (tr.classList.contains('deleted')) return;
+            const input = td.querySelector('input');
+            const value = input ? input.value : td.innerText.trim();
+            if (originalName !== value) {
+                nameChanges.push({
+                    direction_id: directionId,
+                    direction_model: directionModel,
+                    new: value
+                });
+            }
+        });
+
+        document.querySelectorAll('tr.direction-row.deleted').forEach(tr => {
+            const dirId = tr.getAttribute('data-direction-id') || tr.getAttribute('data-direction-tempid');
+            if (dirId)
+                deletedDirections.push({
+                    id: dirId,
+                    model: tr.getAttribute('data-direction-model'),
+                    is_new: tr.classList.contains('new-direction')
+                });
+        });
+
+        document.querySelectorAll('tr.new-direction').forEach(tr => {
+            if (tr.classList.contains('deleted')) return;
+            const facultyId = tr.closest('.faculty-block').getAttribute('data-faculty-id');
+            const directionName = tr.querySelector('td[data-field="direction_name"] input').value;
+            newDirections.push({
+                faculty_id: facultyId,
+                direction_name: directionName,
+                direction_model: tr.getAttribute('data-direction-model'),
+                tempid: tr.getAttribute('data-direction-tempid')
+            });
+        });
+
+        document.querySelectorAll('td.editable[data-program-id]').forEach(td => {
+            const programId = td.dataset.programId;
+            const field = td.dataset.field;
+            const input = td.querySelector('input, select');
+            const value = input ? input.value : td.innerText.trim();
+            const tr = td.closest('tr');
+            if (!programId) return;
+            if (tr.classList.contains('deleted')) {
+                deletedProfiles.push({
+                    id: programId,
+                    is_new: false
+                });
+            } else {
+                if (!programs[programId]) programs[programId] = {};
+                programs[programId][field] = value;
+            }
+        });
+
+        document.querySelectorAll('tr.new-profile').forEach(tr => {
+            const parentDirectionId = tr.getAttribute('data-parent-direction');
+            const parentFacultyBlock = tr.closest('.faculty-block');
+            const isNewFaculty = parentFacultyBlock && parentFacultyBlock.classList.contains('new-faculty-block');
+            if (isNewFaculty) {
+                if (tr.classList.contains('deleted')) {
+                    deletedProfiles.push({
+                        id: tr.getAttribute('data-profile-tempid'),
+                        parent_direction: parentDirectionId,
+                        is_new: true
+                    });
+                }
+                return;
+            }
+            if (tr.classList.contains('deleted')) {
+                deletedProfiles.push({
+                    id: tr.getAttribute('data-profile-tempid'),
+                    parent_direction: parentDirectionId,
+                    is_new: true
+                });
+                return;
+            }
+            const fields = {};
+            tr.querySelectorAll('td[data-new-profile="1"]').forEach(td => {
+                const field = td.dataset.field;
+                const input = td.querySelector('input,select');
+                fields[field] = input ? input.value.trim() : '';
+            });
+            fields["parent_direction"] = parentDirectionId;
+            fields["profile_level"] = "{{ selected }}";
+            fields["tempid"] = tr.getAttribute('data-profile-tempid');
+
+            let needLevel = ("{{ selected }}" === "bachelor_specialist");
+            if (!fields.profile || !fields.education_form ||
+                (needLevel && !fields.level) ||
+                !fields.number_of_courses || isNaN(fields.number_of_courses) || Number(fields.number_of_courses) < 1
+            ) {
+                validationError = true;
+            }
+
+            newProfiles.push(fields);
+        });
+
+        if (validationError) {
+            showModal("Заполните поля");
+            return;
+        }
+
+        fetch("{% url 'programs_bulk_update' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                programs: programs,
+                name_changes: nameChanges,
+                new_directions: newDirections,
+                new_profiles: newProfiles,
+                deleted_directions: deletedDirections,
+                deleted_profiles: deletedProfiles,
+                new_faculties: newFaculties,
+                deleted_faculties: deletedFaculties,
+                faculty_name_changes: facultyNameChanges
+            })
+        })
+        .then(resp => resp.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert("Ошибка при сохранении: " + data.error);
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+        });
+    }
+    function cancelEditingAll() {
+        document.querySelectorAll('.faculty-title input.faculty-name-input').forEach(input => {
+        const span = document.createElement('span');
+        span.className = 'faculty-name-input';
+        span.textContent = input.dataset.originalName || input.value;
+        input.replaceWith(span);
+        });
+        document.querySelectorAll('td.editable').forEach(td => {
+            const originalValue = td.dataset.originalName;
+            const input = td.querySelector('input, select');
+
+            if (originalValue !== undefined && input) {
+                td.innerHTML = originalValue; 
+                td.dataset.originalName = originalValue;
+            }
+        });
+        document.querySelectorAll('.new-direction, .new-profile, .new-faculty-block').forEach(element => {
+            element.remove();
+        });
+        document.querySelectorAll('.deleted').forEach(element => {
+            element.classList.remove('deleted');
+            element.style.display = '';
+        });
+        document.querySelector('.edit-btn').style.display = 'inline-block';
+        document.querySelector('.save-btn').style.display = 'none';
+        document.querySelector('.cancel-btn').style.display = 'none';
+        document.querySelectorAll('.delete-x').forEach(icon => {
+            icon.style.display = 'none';
+        });
+        document.querySelectorAll('.delete').forEach(deleteBtn => {
+            deleteBtn.style.display = 'none';
+        });
+        document.querySelectorAll('.add-direction-btn').forEach(btn => {
+            btn.style.display = 'none';
+        });
+        document.querySelectorAll('.add-profile-btn').forEach(btn => {
+            btn.style.display = 'none';
+        });
+        document.querySelector('.add-faculty-btn').style.display = 'none';
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.add-direction-btn').forEach(btn=>btn.style.display='none');
+    document.querySelectorAll('.add-profile-btn').forEach(btn=>btn.style.display='none');
+    document.querySelectorAll('.delete-x').forEach(icon=>icon.style.display='none');
+    document.querySelectorAll('.delete').forEach(icon=>icon.style.display='none');
+    document.querySelector('.add-faculty-btn').style.display = 'none';
+    });
+</script>
+</body>
+{% endblock %}
+

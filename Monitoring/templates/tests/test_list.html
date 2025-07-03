@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+{% block title %}Список тестов{% endblock %}
+
+{% block content %}
+<body>
+    <div id="body-inner">
+        <nav id="nav-bar"></nav>
+        <div class="up-content">
+            <div class="statistics-controls">
+                <div class="text-main">Список тестов</div>
+                <div class="scroll-controls">
+                    <div class="container test-list" id="testScrollContainer">
+                        {% for test in tests %}
+                            {% if test.start_datetime and test.start_datetime > now %}
+                                <div class="test-unavailable">Доступно позже: {{ test.start_datetime|date:"Y-m-d H:i" }}</div>
+                            {% endif %}
+                            <div class="box">
+                                <div class="box-in-box">
+                                    <img src="{% static 'image/logo_test.png' %}" alt="Тест" class="test-icon">
+                                    <p class="text-red-emotional">{{ test.title }}</p>
+                                </div>
+                                <div class="button-time-container">
+                                    <p class="text_time">
+                                        {% if test.time %}
+                                            Время: {{ test.time }} мин
+                                        {% else %}
+                                            Время: -
+                                        {% endif %}
+                                    </p>
+                                    <div class="button-container">
+                                        <a class="button-start-test" href="{% url 'test_intro' test_id=test.id %}">Начать</a>
+                                        <button class="button-result-test" data-url="{% url 'user_results' test.id %}"
+                                                onclick="location.href=this.getAttribute('data-url')">
+                                            Результаты
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const testTimeMinutes = parseInt("{{ test.time|default:'0' }}");
+        if (testTimeMinutes && testTimeMinutes > 0) {
+            const totalSeconds = testTimeMinutes * 60;
+            let remainingSeconds = totalSeconds;
+            const timerDisplay = document.querySelector('.timer-display');
+            const timerInterval = setInterval(() => {
+            remainingSeconds--;
+            // Обновляем отображение времени
+            if (timerDisplay) {
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+                timerDisplay.textContent = `${minutes} мин ${seconds} сек`;
+            }
+            if (remainingSeconds <= 0) {
+                clearInterval(timerInterval);
+                alert("Время прохождения теста закончилось!");
+                document.querySelector('#quizForm').submit();
+            }
+            }, 1000);
+        }
+    </script>
+</body>
+{% endblock %}

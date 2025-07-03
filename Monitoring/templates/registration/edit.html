@@ -1,0 +1,386 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+<script src="{% static 'js/script.js' %}"></script>
+
+{% block content %}
+    <div class="logo">
+        <img class="logo-pic" src="{% static 'image/logo.png' %}" width="100" height="100px">
+        <div class="logo-text">
+            <div class="up">Психологический<br> термометр<br></div>
+            <div class="down">Экспресс-диагностика</div>
+        </div>
+    </div>
+    <nav id="nav-bar">
+    </nav> 
+    <div class="Personal-data-regestration">
+        <div class="text-registration1">Персональные данные</div>
+        <form id="main-registration-form" action="{% url 'edit' %}" method="post">
+            {% csrf_token %}
+            <div>
+                <div class="form-row">
+                    <label class="test-text" for="{{ user_form.first_name.id_for_label }}">Имя:</label>
+                    {{ user_form.first_name }}
+                </div>
+            </div>
+            <div>
+                <div class="form-row">
+                    <label class="test-text" for="{{ user_form.last_name.id_for_label }}">Фамилия:</label>
+                    {{ user_form.last_name }}
+                </div>
+            </div>
+            <div>
+                <div class="form-row">
+                    <label class="test-text" for="{{ profile_form.patronymic.id_for_label }}">Отчество:</label>
+                    {{ profile_form.patronymic }}
+                </div>
+            </div>
+            <div>
+                <div class="form-row">
+                    <label class="test-text" for="{{ profile_form.date_of_birth.id_for_label }}">Дата рождения:</label>
+                    {{ profile_form.date_of_birth }}
+                </div>
+            </div>          
+            <div>
+                <div class="form-row">
+                    <label class="test-text" for="role-selection">Роль:</label>
+                    <div class="select-container">
+                        <select id="role-selection" class="text-message-for-comformation" name="role" required>
+                            <option value="" disabled selected>Выберите вашу роль</option>
+                            <option value="Студент">Студент</option>
+                            <option value="Сотрудник">Сотрудник</option>
+                            <option value="Гость">Гость</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div id="student-fields" style="display:none;">
+                <div class="form-row">
+                    <label class="test-text" for="{{ profile_form.education_level.id_for_label }}">Уровень образования:</label>
+                    {{ profile_form.education_level }}
+                </div>
+                <div class="form-row">
+                    <label class="test-text" for="{{ profile_form.faculty.id_for_label }}">Факультет:</label>
+                    {{ profile_form.faculty }}
+                </div>
+                <div class="form-row">
+                    <label class="test-text" for="{{ profile_form.direction.id_for_label }}">Направление:</label>
+                    {{ profile_form.direction }}
+                </div>
+                <div class="form-row">
+                    <label class="test-text" for="{{ profile_form.profile.id_for_label }}">Профиль:</label>
+                    {{ profile_form.profile }}
+                </div>
+                <div class="form-row">
+                    <label class="test-text" for="{{ profile_form.education_form.id_for_label }}">Форма обучения:</label>
+                    {{ profile_form.education_form }}
+                </div>
+                <div class="form-row">
+                    <label class="test-text" for="{{ profile_form.grade.id_for_label }}">Курс:</label>
+                    {{ profile_form.grade }}
+                </div>
+            </div>
+            <div id="staff-fields" style="display:none;">
+                <div class="form-row">
+                    <label class="test-text" for="{{ profile_form.faculty.id_for_label }}">Факультет:</label>
+                    {{ profile_form.faculty }}
+                </div>
+            </div>
+            <div class="form-button">
+                <button type="submit" class="button-enter-authorization"> Продолжить</button>
+            </div>
+        </form>
+    </div>
+
+<script>
+    document.querySelector('form').addEventListener('submit', function() {
+        document.getElementById('id_education_form').disabled = false;
+    });
+
+    function ajaxLoadDirections() {
+        var level = document.getElementById('id_education_level');
+        var faculty = document.getElementById('id_faculty');
+        if (!level || !faculty) return;
+        fetch(`/ajax/load-directions/?education_level=${level.value}&faculty=${faculty.value}`)
+            .then(response => response.json())
+            .then(data => {
+                var directionSelect = document.getElementById('id_direction');
+                directionSelect.innerHTML = '';
+                directionSelect.options.add(new Option('Выберите направление', ''));
+                data.directions.forEach(function (item) {
+                    var option = new Option(item.direction_name, item.id);
+                    directionSelect.options.add(option);
+                });
+                document.getElementById('id_profile').innerHTML = '<option value="">Выберите профиль</option>';
+                document.getElementById('id_education_form').value = '';
+            });
+    }
+
+    function ajaxLoadProfiles() {
+        var level = document.getElementById('id_education_level');
+        var direction = document.getElementById('id_direction');
+        if (!level || !direction) return;
+        fetch(`/ajax/load-profiles/?education_level=${level.value}&direction=${direction.value}`)
+            .then(response => response.json())
+            .then(data => {
+                var profileSelect = document.getElementById('id_profile');
+                profileSelect.innerHTML = '';
+                profileSelect.options.add(new Option('Выберите профиль', ''));
+                data.profiles.forEach(function (item) {
+                    var option = new Option(item.profile, item.id);
+                    profileSelect.options.add(option);
+                });
+                if (data.profiles.length > 0) {
+                    document.getElementById('id_education_form').value = data.profiles[0].education_form;
+                } else {
+                    document.getElementById('id_education_form').value = '';
+                }
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const roleSelect = document.getElementById('role-selection');
+        const studentFields = document.getElementById('student-fields');
+        const staffFields = document.getElementById('staff-fields');
+        function setFieldsDisabled(section, state) {
+            if (!section) return;
+            Array.from(section.querySelectorAll('input, select, textarea')).forEach(el => {
+                if (el.type !== 'hidden' && el.name !== 'role') {
+                    if (state) {
+                        el.style.display = 'none';
+                        el.removeAttribute('required');
+                    } else {
+                        el.style.display = '';
+                    }
+                }
+            });
+        }
+
+        function updateFieldsVisibility() {
+            const role = roleSelect.value;
+            studentFields.style.display = 'none';
+            staffFields.style.display = 'none';
+            setFieldsDisabled(studentFields, true);
+            setFieldsDisabled(staffFields, true);
+            if (role === 'Студент') {
+                studentFields.style.display = 'block';
+                setFieldsDisabled(studentFields, false);
+                setAllRequired(studentFields, true);
+            } else if (role === 'Сотрудник') {
+                staffFields.style.display = 'block';
+                setFieldsDisabled(staffFields, false);
+                setAllRequired(staffFields, true);
+            }
+        }
+
+        function setFieldsDisabled(section, state) {
+            if (!section) return;
+            Array.from(section.querySelectorAll('input, select, textarea')).forEach(el => {
+                if (el.type !== 'hidden' && el.name !== 'role') {
+                    if (state) {
+                        el.style.display = 'none';
+                        el.removeAttribute('required');
+                    } else {
+                        el.style.display = '';
+                    }
+                }
+            });
+        }
+
+        roleSelect.addEventListener('change', updateFieldsVisibility);
+        updateFieldsVisibility();
+        const educationLevel = document.getElementById('id_education_level');
+        const faculty = document.getElementById('id_faculty');
+        const direction = document.getElementById('id_direction');
+        const profile = document.getElementById('id_profile');
+        if (educationLevel && faculty) {
+            educationLevel.addEventListener('change', function() {
+                loadDirections();
+                resetProfileAndForm();
+            });
+            
+            faculty.addEventListener('change', function() {
+                loadDirections();
+                resetProfileAndForm();
+            });
+        }
+        if (direction) {
+            direction.addEventListener('change', loadProfiles);
+        }
+        if (profile) {
+            profile.addEventListener('change', function() {
+                updateEducationForm(this);
+            });
+        }
+    });
+
+    function resetProfileAndForm() {
+        const profileSelect = document.getElementById('id_profile');
+        const educationFormInput = document.getElementById('id_education_form');
+        if (profileSelect) {
+            profileSelect.innerHTML = '<option value="">Выберите профиль</option>';
+            profileSelect.disabled = true;
+        }
+        if (educationFormInput) {
+            educationFormInput.innerHTML = '<option value="">Сначала выберите профиль</option>';
+            educationFormInput.disabled = true;
+        }
+    }
+
+    function resetEducationForm() {
+        document.getElementById('id_education_form').innerHTML = '<option value="">Сначала выберите профиль</option>';
+        document.getElementById('id_education_form').disabled = true;
+    }
+
+    function loadDirections() {
+        const csrftoken = getCookie('csrftoken');
+        const level = document.getElementById('id_education_level');
+        const faculty = document.getElementById('id_faculty');
+        const directionSelect = document.getElementById('id_direction');
+        if (!level || !faculty || !faculty.value || !directionSelect) return;
+        directionSelect.disabled = true;
+        directionSelect.innerHTML = '<option value="">Загрузка...</option>';
+        fetch(`/ajax/load-directions/?education_level=${encodeURIComponent(level.value)}&faculty=${encodeURIComponent(faculty.value)}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrftoken
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            directionSelect.innerHTML = '';
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Выберите направление';
+            directionSelect.appendChild(defaultOption);
+            if (data.directions && data.directions.length > 0) {
+                data.directions.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.direction_name;
+                    directionSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            directionSelect.innerHTML = '<option value="">Ошибка загрузки</option>';
+        })
+        .finally(() => {
+            directionSelect.disabled = false;
+        });
+    }
+
+    function loadProfiles() {
+        const directionSelect = document.getElementById('id_direction');
+        const profileSelect = document.getElementById('id_profile');
+        const educationFormSelect = document.getElementById('id_education_form');
+        const levelSelect = document.getElementById('id_education_level');
+        if (!directionSelect || !profileSelect || !educationFormSelect || !levelSelect) {
+            console.error('Required elements not found');
+            return;
+        }
+        const directionId = directionSelect.value;
+        const educationLevel = levelSelect.value;
+        if (!directionId || !educationLevel) {
+            profileSelect.innerHTML = '<option value="">Сначала выберите направление</option>';
+            educationFormSelect.innerHTML = '<option value="">Сначала выберите профиль</option>';
+            educationFormSelect.disabled = true;
+            return;
+        }
+        profileSelect.disabled = true;
+        profileSelect.innerHTML = '<option value="">Загрузка...</option>';
+        educationFormSelect.disabled = true;
+        educationFormSelect.innerHTML = '<option value="">Загрузка...</option>';
+        fetch(`/ajax/load-profiles/?education_level=${encodeURIComponent(educationLevel)}&direction=${encodeURIComponent(directionId)}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                console.error('Error:', data.error);
+                profileSelect.innerHTML = `<option value="">Ошибка: ${data.error}</option>`;
+                educationFormSelect.innerHTML = '<option value="">Ошибка</option>';
+                return;
+            }
+            profileSelect.innerHTML = '';
+            educationFormSelect.innerHTML = '';
+            const profileDefaultOption = document.createElement('option');
+            profileDefaultOption.value = '';
+            profileDefaultOption.textContent = 'Выберите профиль';
+            profileSelect.appendChild(profileDefaultOption);
+            const educationDefaultOption = document.createElement('option');
+            educationDefaultOption.value = '';
+            educationDefaultOption.textContent = data.profiles?.length ? 'Выберите профиль' : 'Нет доступных профилей';
+            educationFormSelect.appendChild(educationDefaultOption);
+            if (data.profiles && data.profiles.length > 0) {
+                data.profiles.forEach(profile => {
+                    const option = document.createElement('option');
+                    option.value = profile.id;
+                    option.textContent = profile.name;
+                    option.dataset.educationForm = profile.education_form;
+                    option.dataset.educationFormDisplay = profile.education_form_display;
+                    profileSelect.appendChild(option);
+                });
+                profileSelect.addEventListener('change', function() {
+                    updateEducationForm(this);
+                });
+                if (data.profiles.length === 1) {
+                    profileSelect.value = data.profiles[0].id;
+                    updateEducationForm(profileSelect);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading profiles:', error);
+            profileSelect.innerHTML = '<option value="">Ошибка загрузки</option>';
+            educationFormSelect.innerHTML = '<option value="">Ошибка</option>';
+        })
+        .finally(() => {
+            profileSelect.disabled = false;
+        });
+    }
+
+    function updateEducationForm(profileSelect) {
+        const educationFormSelect = document.getElementById('id_education_form');
+        if (!educationFormSelect) return;
+        const selectedOption = profileSelect.options[profileSelect.selectedIndex];
+        educationFormSelect.innerHTML = '';
+        if (selectedOption && selectedOption.value && selectedOption.dataset.educationForm) {
+            const option = document.createElement('option');
+            option.value = selectedOption.dataset.educationForm;
+            option.textContent = selectedOption.dataset.educationFormDisplay;
+            educationFormSelect.appendChild(option);
+            educationFormSelect.disabled = false;
+        } else {
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Выберите профиль';
+            educationFormSelect.appendChild(defaultOption);
+            educationFormSelect.disabled = true;
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}"> <!-- Подключение CSS -->
+<script async src="{% static 'js/script.js' %}"></script>
+
+{% block content %}
+<body>
+    <div class="logo">
+        <img class="logo-pic" src="{% static 'image/logo.png' %}" width="100" height="100px">
+        <div class="logo-text">
+            <div class="up">Психологический<br> термометр<br></div>
+            <div class="down">Экспресс-диагностика</div>
+        </div>
+    </div>
+    <nav id="nav-bar"></nav> 
+        <div class="authorization">
+            <div class="text-authorization">Вход</div>
+            <!-- Переключатель -->
+            <div class="auth-switcher">
+                <button id="admin-tab" onclick="showAdmin()">Вход для администратора</button>
+                <button id="user-tab" class="active" onclick="showUser()">Вход для пользователей</button>
+            </div>
+            <!-- Блок для админа -->
+            <div id="admin-login" style="display:none">
+                {% if form.errors %}
+                    Ваш логин и пароль не совпадают. Пожалуйста, попробуйте снова.
+                {% endif %}
+                <form action="{% url 'user_login' %}" method="post">
+                    <div class="authorization-row">
+                        {% csrf_token %}
+                        <input type="text" class="number-phone-authorization" placeholder="Логин" maxlength="50" required name="username">
+                        <input type="password" class="password-authorization" placeholder="Пароль" maxlength="50" required name="password">
+                        <input type="hidden" name="next" value="{{ next }}"/>
+                        <div class="enter-authorization">
+                            <button type="submit" class="button-enter-authorization">Войти</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div id="user-login" style="display:block">
+                <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="MonitoringPSUBot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
+                            <script type="text/javascript">
+                            function onTelegramAuth(userData) {
+                                fetch('/auth/telegram/', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify(userData),
+                                }).then(response => {
+                                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                                    return response.json();
+                                }).then(data => {
+                                    window.location.href = data.next_url;
+                                }).catch(error => {
+                                    console.error("Ошибка:", error);
+                                    alert("Возникла ошибка при попытке входа.");
+                                });
+                            }
+                </script>       
+            </div>
+        </div>
+    </div>
+    <script>
+        function showAdmin() {
+            document.getElementById('admin-login').style.display = 'block';
+            document.getElementById('user-login').style.display = 'none';
+            document.getElementById('admin-tab').classList.add('active');
+            document.getElementById('user-tab').classList.remove('active');
+        }
+        function showUser() {
+            document.getElementById('admin-login').style.display = 'none';
+            document.getElementById('user-login').style.display = 'block';
+            document.getElementById('admin-tab').classList.remove('active');
+            document.getElementById('user-tab').classList.add('active');
+        }
+    </script>
+</body>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+<script src="{% static 'js/script.js' %}"></script> 
+{% block title %}Тест{% endblock %}
+
+{% block content %}
+<body>
+    <div id="body-inner">
+        <nav id="nav-bar">
+        </nav>
+        <div class="test-list-main">
+            <div class="text-test-list1">{{ test.title }}</div>
+            <p class="test-text1">Количество вопросов: {{ questions_count }} </p>
+            <p class="test-text3">Инструкция: {{ test.description }}</p>
+            {% if test_time %}
+                <p class="test-time-warning" style="color: #b32426; font-weight: bold;">
+                    Время на тест ограничено и равно {{ test_time }} мин. 
+                    Будет идти обратный отсчет времени с момента вашей попытки, и вы должны завершить тест до окончания времени.
+                    Иначе баллы на неотвеченные вопросы будут равны нулю.
+                    Вы уверены, что хотите начать прямо сейчас?
+                </p>
+            {% endif %}
+            <form id="startTestForm" action="{% url 'start_test' test_id=test.id question_index=1 %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="button-enter-lobby" 
+                        {% if test_time %} id="startTestBtn" {% endif %}>
+                    Начать тест
+                </button>
+            </form>                     
+        </div>
+    </div>
+</body>
+{% endblock %}

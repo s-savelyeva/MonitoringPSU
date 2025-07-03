@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Редактирование профиля{% endblock %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{% block content %}
+
+<div id="body-inner">
+    <nav id="nav-bar">
+        <a href="{% url 'admin_users' %}">Пользователи</a>
+        <a href="{% url 'edit_test_list' %}">Тесты</a>
+        <a href="{% url 'statistics' %}">Статистика</a>
+    </nav>
+    <main id="content">
+        <div class="up-content">
+            <div class="edit-profile-block" style="width: 400px;">
+                <div class="title">Редактирование профиля: </div>
+                <div class="title-fio">{{ user.get_full_name }}</div>
+                <form method="post" class="edit-profile-form" id="edit-profile-form">
+                    {% csrf_token %}
+                    <div class="form-group" id="div_last_name">
+                        <label class="form-text" for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <div class="error">{{ form.last_name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group" id="div_first_name">
+                        <label class="form-text" for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <div class="error">{{ form.first_name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group" id="div_patronymic">
+                        <label class="form-text" for="{{ form.patronymic.id_for_label }}">{{ form.patronymic.label }}</label>
+                        {{ form.patronymic }}
+                        {% if form.patronymic.errors %}
+                            <div class="error">{{ form.patronymic.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group" id="div_date_of_birth">
+                        <label class="form-text" for="{{ form.date_of_birth.id_for_label }}">{{ form.date_of_birth.label }}</label>
+                        {{ form.date_of_birth }}
+                        {% if form.date_of_birth.errors %}
+                            <div class="error">{{ form.date_of_birth.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group" id="div_role">
+                        <label class="form-text" for="{{ form.role.id_for_label }}">{{ form.role.label }}</label>
+                        {{ form.role }}
+                        {% if form.role.errors %}
+                            <div class="error">{{ form.role.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group" id="div_faculty">
+                        <label class="form-text" for="{{ form.faculty.id_for_label }}">{{ form.faculty.label }}</label>
+                        {{ form.faculty }}
+                        {% if form.faculty.errors %}
+                            <div class="error">{{ form.faculty.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group" id="div_direction">
+                        <label class="form-text" for="{{ form.direction.id_for_label }}">{{ form.direction.label }}</label>
+                        {{ form.direction }}
+                        {% if form.direction.errors %}
+                            <div class="error">{{ form.direction.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group" id="div_profile">
+                        <label class="form-text" for="{{ form.profile.id_for_label }}">{{ form.profile.label }}</label>
+                        {{ form.profile }}
+                        {% if form.profile.errors %}
+                            <div class="error">{{ form.profile.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group" id="div_study_form">
+                        <label class="form-text" for="{{ form.study_form.id_for_label }}">{{ form.study_form.label }}</label>
+                        {{ form.study_form }}
+                        {% if form.study_form.errors %}
+                            <div class="error">{{ form.study_form.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group" id="div_education_level">
+                        <label class="form-text" for="{{ form.education_level.id_for_label }}">{{ form.education_level.label }}</label>
+                        {{ form.education_level }}
+                        {% if form.education_level.errors %}
+                            <div class="error">{{ form.education_level.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group" id="div_grade">
+                        <label class="form-text" for="{{ form.grade.id_for_label }}">{{ form.grade.label }}</label>
+                        {{ form.grade }}
+                        {% if form.grade.errors %}
+                            <div class="error">{{ form.grade.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <button type="submit" class="btn-save" style="margin-top: 20px;">Сохранить</button>
+                    <a href="{% url 'user_profile' user.id %}" class="btn-back">Отмена</a>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    function updateRoleFields() {
+        const roleSelect = document.getElementById('id_role');
+        let role = '';
+        if (roleSelect) {
+            if (roleSelect.tagName === 'SELECT') {
+                role = roleSelect.value;
+            } else {
+                role = roleSelect.getAttribute('value');
+            }
+        }
+        const extraFields = [
+            'div_faculty',
+            'div_direction', 
+            'div_grade',
+            'div_profile',
+            'div_study_form',
+            'div_education_level'
+        ];
+        if (role === 'студент') {
+            extraFields.forEach(function(id) {
+                document.getElementById(id).style.display = '';
+            });
+        } else if (role === 'сотрудник') {
+            document.getElementById('div_faculty').style.display = '';
+            extraFields.filter(function(f){return f!=='div_faculty'}).forEach(function(id){
+                document.getElementById(id).style.display = 'none';
+                var input = document.querySelector('#'+id+' input, #'+id+' select');
+                if (input) input.value = '';
+            });
+        } else {
+            extraFields.forEach(function(id){
+                document.getElementById(id).style.display = 'none';
+                var input = document.querySelector('#'+id+' input, #'+id+' select');
+                if (input) input.value = '';
+            });
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(updateRoleFields, 0);
+        var roleSelect = document.getElementById('id_role');
+        if (roleSelect) roleSelect.addEventListener('change', updateRoleFields);
+    });
+</script>
+{% endblock %}

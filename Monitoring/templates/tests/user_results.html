@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+{% load l10n %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+{% block title %}Результаты{% endblock %}
+{% block content %}
+<body>
+    <nav id="nav-bar"></nav>
+    <div id="content">
+        <h1 class="result-text">Результаты теста "{{ test.title }}"</h1>
+        {% if user_tests %}
+            <table id="table-content">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Итог</th>
+                        <th>Результат</th>
+                        <th>Интерпретация</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user_test in user_tests %}
+                        <tr>
+                            <td>{{ user_test.completed_at|date:"d.m.Y" }}</td> 
+                            <td>{{ user_test.result }}</td>
+                            <td>{{ user_test.additional_info }}</td>
+                            <td>{{ user_test.result_description }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-red-emotional">Результаты по этому тесту отсутствуют.</p>
+        {% endif %}
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="button-center" onclick="window.location.href='{% url 'test_list' %}'">Ок</button>
+        </div>
+    </div>
+</body>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+{% block title %}Список тестов{% endblock %}
+
+{% block content %}
+<body>
+    <div id="body-inner">
+        <nav id="nav-bar"></nav>
+        <div class="up-content">
+            <div class="test-finish-test-main">
+                <div style="display: flex; flex-direction: row; justify-content: center; align-items: flex-start; gap: 30px;">
+                    <div>
+                        {% if result_image %}
+                        <div class="result-image-container">
+                            <img src="{{ result_image.url }}" alt="Результат изображения" />
+                        </div>
+                        {% endif %}
+                        {% if result.use_thermometer %}
+                        <div style="display: flex; align-items: flex-end;">
+                            <div class="result-image-container">
+                                <div class="thermometer-labels">
+                                    <div class="label-max">{{ max_score }}</div>
+                                    <div class="thermometer-container">
+                                        <div class="thermometer-tube" data-direction="{{ result.color_direction|default:'green_to_red' }}">
+                                            <div class="thermometer-indicator"
+                                                style="--result-percent: {{ percentage|floatformat:'0' }};"
+                                                title="Ваш результат"></div>
+                                        </div>
+                                    </div>
+                                    <div class="label-min">{{ min_score }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="text-test-list1">Результат теста "{{ user_test.test.title }}"</div>
+                        <p class="test-text1">Ваш результат: {{ user_test.result }}</p>
+                        {% if user_test.additional_info %}
+                            <p class="test-text3">{{ user_test.additional_info }}</p>
+                        {% endif %}
+                        {% if user_test.result_description %}
+                            <p class="test-text3">{{ user_test.result_description }}</p>
+                        {% endif %}
+                        <a href="{% url 'test_list'%}" class="button-finish-test">Ок</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tube = document.querySelector('.thermometer-tube');
+        const indicator = document.querySelector('.thermometer-indicator');
+        if (!tube || !indicator) return;
+        const direction = tube.dataset.direction || "green_to_red";
+        const colorStart = "#66b951";
+        const colorEnd = "#d2323c";
+        tube.style.background = 
+        (direction === "green_to_red")
+        ? `linear-gradient(to top, ${colorEnd} 0%, ${colorStart} 100%)`
+        : `linear-gradient(to top, ${colorStart} 0%, ${colorEnd} 100%)`;
+
+        let percent = parseFloat(indicator.style.getPropertyValue('--result-percent'));
+        if (isNaN(percent)) percent = 0;
+        percent = Math.max(0, Math.min(100, percent));
+        const tubeHeight = tube.offsetHeight;
+        const indicatorHeight = indicator.offsetHeight || 3;
+        const offset = Math.min((tubeHeight * (percent / 100)) - (indicatorHeight / 2), tubeHeight - indicatorHeight);
+        indicator.style.bottom = `${offset}px`;
+    });
+</script>
+{% endblock %}
+
+

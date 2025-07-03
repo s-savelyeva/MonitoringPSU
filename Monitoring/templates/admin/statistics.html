@@ -1,0 +1,196 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/statistics.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+
+{% block content %}
+<body>
+    <div id="body-inner">
+        <header id="page-header">
+            <div class="logo">
+                <img class="logo-pic" src="{% static 'image/logo.png' %}" width="100" height="100">
+                <div class="logo-text">
+                    <div class="up">Психологический<br> термометр<br></div>
+                    <div class="down">Экспресс-диагностика</div>
+                </div>
+            </div>
+            <div class="exit">
+                <a href="{% url 'user_logout' %}">
+                    <img src="{% static 'image/exit.png' %}" width="50" height="50">
+                    <div class="exit-text">
+                        <span>Выйти</span>
+                    </div>
+                </a>
+            </div>
+        </header>
+        <nav id="nav-bar">
+            <a href="{% url 'admin_users' %}">Пользователи</a>
+            <a href="{% url 'edit_test_list' %}">Тесты</a>
+            <a href="{% url 'statistics' %}">Статистика</a>
+            <a href="{% url 'data_editing' %}">Редактирование данных</a>
+        </nav>
+        <div class="up-content">
+            <div class="statistics-controls">
+                <div class="result-text-stat">Статистика</div>
+                <form method="GET" action="{% url 'statistics' %}">
+                    <div class="controls-row">
+                        <div class="control-group">
+                            <div class="control-label">Выбрать тест:</div>
+                            <select name="test_id" class="statistics-select">
+                                <option value="">Выбрать</option>
+                                {% for test in tests %}
+                                    <option value="{{ test.id }}" {% if test.id|stringformat:"s" == test_id|stringformat:"s" %}selected{% endif %}>{{ test.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <div class="control-label">Период тестирования:</div>
+                            <div class="date-inputs">
+                                <input type="text" name="start_date" class="date-input" value="{{ start_date|default:"дд.мм.гггг" }}" placeholder="дд.мм.гггг">
+                                <div class="tipe">—</div>
+                                <input type="text" name="end_date" class="date-input" value="{{ end_date|default:"дд.мм.гггг" }}" placeholder="дд.мм.гггг">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <button type="submit" class="btn-show-statistics">Показать</button>
+                        {% if statistics_data %}
+                            <a href="{% url 'export_statistics' %}?test_id={{ test_id }}&start_date={{ start_date }}&end_date={{ end_date }}" class="btn-show-statistics" style="margin: 5px 0 20px">Выгрузить в файл</a>
+                        {% endif %}
+                    </div>
+                </form>
+                {% if statistics_data %}
+                <table id="statistics-table">
+                    <thead>
+                        <tr>
+                            <th>Номер вопроса</th>
+                            <th>Мода</th>
+                            <th>Дисперсия</th>
+                            <th>Стандартное отклонение</th>
+                            <th>Среднее арифметическое</th>
+                            <th>Медиана</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for statistic in statistics_data %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ statistic.mode }}</td>
+                            <td>{{ statistic.variance }}</td>
+                            <td>{{ statistic.std_deviation }}</td>
+                            <td>{{ statistic.mean }}</td>
+                            <td>{{ statistic.median }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-creeate-new-test">Нет доступных данных для выбранного теста.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            flatpickr(".date-input", {
+                dateFormat: "d.m.Y",
+                allowInput: true,
+                locale: "ru",
+                onReady: function(selectedDates, dateStr, instance) {
+                    const customStyles = `
+                        /* Общий фон календаря */
+                        .flatpickr-calendar {
+                            background: #fff !important;
+                            border: 1px solid #d2323c !important;
+                            box-shadow: 0 4px 18px #d2323c19;
+                        }
+                        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange, .flatpickr-day:hover {
+                            background-color: #d2323c !important;
+                            color #fff !important;
+                            border-radius: 6px !important;
+                        }
+                        .flatpickr-day {
+                            border-radius: 8px !important;
+                            color: #262626 !important;
+                        }
+                        /* Стилизация месяцев — выпадающий список */
+                        .flatpickr-calendar .flatpickr-monthDropdown-months {
+                            background: #f6e7eb !important;
+                            border-radius: 6px !important;
+                            border: 1.5px solid #d2323c !important;
+                            padding: 2px 0 !important;
+                        }
+                        .flatpickr-calendar .flatpickr-monthDropdown-month {
+                            color: #262626 !important;
+                            background: transparent !important;
+                            border-radius: 4px;
+                            padding: 4px 14px !important;
+                            font-size: 15px;
+                            transition: background .15s, color .15s;
+                            cursor: pointer;
+                        }
+                        .flatpickr-calendar .flatpickr-monthDropdown-month.selected,
+                        .flatpickr-calendar .flatpickr-monthDropdown-month:hover {
+                            background-color: #d2323c !important; /* Красный цвет фона */
+                            color: #ffffff !important; /* Белый цвет текста */
+                        }
+                        /* Стилизация управляющих стрелок */
+                        .flatpickr-next-month,
+                        .flatpickr-prev-month {
+                            color: #d2323c !important;
+                            fill: #d2323c !important;
+                            transition: background .2s;
+                        }
+                        .flatpickr-next-month:hover,
+                        .flatpickr-prev-month:hover {
+                            background: #ffe5ea !important;
+                            border-radius: 99px;
+                        }
+                        /* Заголовок месяцев и лет */
+                        .flatpickr-current-month {
+                            color: #d2323c !important;
+                            font-weight: bold;
+                        }
+                        .flatpickr-current-month input.cur-month, 
+                        .flatpickr-current-month input.cur-year {
+                            border: none !important;
+                            background: transparent !important;
+                            color: #d2323c !important;
+                        }
+                    `;
+                    const styleSheet = document.createElement("style");
+                    styleSheet.type = "text/css";
+                    styleSheet.innerText = customStyles;
+                    document.head.appendChild(styleSheet);
+                }
+            });
+        
+            function exportTableToExcel() {
+                let table = document.getElementById('my-table');
+                let data = [];
+                for (let r = 0, n = table.rows.length; r < n; r++) {
+                    let rowData = [];
+                    for (let c = 0, m = table.rows[r].cells.length; c < m; c++) {
+                        let cell = table.rows[r].cells[c];
+                        if (cell.offsetParent !== null) {
+                            rowData.push(cell.innerText.trim());
+                        }
+                    }
+                    if (rowData.length > 0) data.push(rowData);
+                }
+                let ws = XLSX.utils.aoa_to_sheet(data);
+                let wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Статистика");
+                XLSX.writeFile(wb, "statistics.xlsx");
+            }
+
+            const exportBtn = document.getElementById('export-to-excel');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportTableToExcel);
+            }
+        });
+    </script>
+</body>
+{% endblock %}

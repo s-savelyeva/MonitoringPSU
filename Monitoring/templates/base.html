@@ -1,0 +1,30 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{% block title %}Default Title{% endblock %}</title>
+        <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}"> 
+        {% block extra_css %}{% endblock %}
+    </head>
+    <body>
+        <header id="page-header">
+            <div class="logo">
+                <img class="logo-pic" src="{% static 'image/logo.png' %}" width="100" height="100px">
+                <div class="logo-text">
+                    <div class="up">Психологический<br> термометр<br></div>
+                    <div class="down">Экспресс-диагностика</div>
+                </div>
+            </div>
+            <div class="exit">
+                <a href="{% url 'user_logout' %}">
+                    <img src="{% static 'image/exit.png' %}" width="50" height="50">
+                    <div class="exit-text">
+                        <span>Выйти</span>
+                    </div>
+                </a>
+            </div>
+        </header>
+        {% block content %}
+        {% endblock %}
+    </body>
+</html>

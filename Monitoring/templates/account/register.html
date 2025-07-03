@@ -1,0 +1,32 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+<script async src="{% static 'js/script.js' %}"></script>
+
+{% block content %}
+<body>
+    <div class="logo">
+        <img class="logo-pic" src="{% static 'image/logo.png' %}" width="100" height="100px">
+        <div class="logo-text">
+            <div class="up">Психологический<br> термометр<br></div>
+            <div class="down">Экспресс-диагностика</div>
+        </div>
+    </div>
+    <nav id="nav-bar">
+    </nav> 
+    <div id="body-inner">
+        <div class="registration">
+            <div class="text-registration">Регистрация</div>
+            <form action="." method="post" autocomplete="off">
+                <div class="authorization-row">
+                    {% csrf_token %}
+                    {{ user_form.phone_number }}
+                    {{ user_form.password }}
+                    {{ user_form.password_repeat }}
+                    <button type="submit" class="button-registration">Зарегистрироваться</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+{% endblock %}

@@ -1,0 +1,906 @@
+
+{% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/construct.css' %}"> 
+
+{% block content %}
+    <header id="page-header">
+        <div class="logo">
+            <img class="logo-pic" src="{% static 'image/logo.png' %}" width="100" height="100px">
+            <div class="logo-text">
+                <div class="up">Психологический<br> термометр<br></div>
+                <div class="down">Экспресс-диагностика</div>
+            </div>
+        </div>
+        <div class="exit">
+            <a href="{% url 'user_logout' %}">
+                <img src="{% static 'image/exit.png' %}" width="50" height="50">
+                <div class="exit-text">
+                    <span>Выйти</span>
+                </div>
+            </a>
+        </div>
+    </header>
+    <div id="body-inner">
+        <nav id="nav-bar">
+            <a href="{% url 'admin_users' %}">Пользователи</a>
+            <a href="{% url 'edit_test_list' %}">Тесты</a>
+            <a href="{% url 'statistics' %}">Статистика</a>
+        </nav>
+        <main id="content_id">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="window-creeate-new-test">
+                    <div class="input-container">
+                        <div class="window-input-name-test">
+                            <div class="text-creeate-new-test">Новый тест</div>
+                            {{ test_form.title }}
+                            {{ test_form.description }}
+                        </div>
+                    </div>
+                    <button class="button-next-test-create" type="submit">Далее</button>
+                </div>
+
+                <div class="select-limit-time">
+                    <div class="label">Дата и время открытия доступа к тесту:</div>
+                    <input class="date-input" type="datetime-local" name="start_datetime" id="testStartDatetime" required>
+                </div>
+
+                <div class="select-limit-time-for-test">
+                    <div class="text-limit-time">Ограничение времени</div>
+                    <div class="option-container1">
+                        <label class="radio-option">
+                            <input type="radio" name="timeLimit" value="limited" onclick="toggleLimitTime()" checked>
+                            <text class="text-limit-time-2">Ограничить время тестирования</text>
+                        </label>
+                    </div>
+                    <div class="time-inputs">
+                        <div class="time-input-container">
+                            <span class="text-limit-time-3">Время:</span>
+                            {{ test_form.time }}
+                            <span class="text-limit-time-3">мин</span>
+                        </div>
+                    </div>
+                    <div class="option-container2">
+                        <label class="radio-option">
+                            <input type="radio" name="timeLimit" value="none" onclick="toggleLimitTime()">
+                            <span class="text-limit-time-2">Без ограничений</span>
+                        </label>
+                    </div>                    
+                </div>
+
+                <div class="select-limit-time-for-test">
+                    <div class="text-limit-time-4">Назначить тест</div>
+                    <div class="category-container">
+                        <div class="category-options">
+                            <div class="option-container1">
+                                <label class="radio-option">
+                                    <input type="radio" name="categorySelect" value="select" onclick="toggleCategoryFields()" checked>
+                                    <span class="text-limit-time-6">Выбрать категорию</span>
+                                </label>
+                            </div>
+                            <div class="option-container2">
+                                <label class="radio-option">
+                                    <input type="radio" name="categorySelect" value="assign" onclick="toggleCategoryFields()">
+                                    <span class="text-limit-time-6">Назначить всем</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="category-fields" id="categoryFields">
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="category" value="student">
+                                <span class="text-limit-time-6">Студент</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="category" value="staff">
+                                <span class="text-limit-time-6">Сотрудник</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="category" value="guest">
+                                <span class="text-limit-time-6">Гость</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="questions-wrapper">
+                    <div class="questions-container" id="questionsContainer">
+                        <div class="question-form-container draggable-question" draggable="true">
+                            <div class="question-form">
+                                <div class="question-number">Вопрос №1</div>
+                                <div class="question-header">
+                                    <input class="date-input" type="text" name="question_text" placeholder="Введите вопрос">
+                                    <select class="question-type-select" name="question_type">
+                                        <option value="choice" {% if question.question_type == 'choice' %}selected{% endif %}>Один из списка</option>
+                                        <option value="scale" {% if question.question_type == 'scale' %}selected{% endif %}>Шкала</option>
+                                    </select>
+                                </div>
+
+                                <label class="radio-option">
+                                    <input
+                                        type="checkbox"
+                                        name="is_mandatory_{{ forloop.counter0 }}" checked 
+                                        {% if question.is_mandatory %}checked{% endif %}
+                                    />
+                                    <span class="text-limit-time-5">Обязательный вопрос</span>
+                                </label>                             
+
+                                <div class="question-options">
+                                    <button type="button" class="add-answer-btn" onclick="addNewOption(this.closest('.question-form'))">Добавить вариант ответа</button>
+                                    <div class="option-item">
+                                        <div class="option-inputs">
+                                            <input class="date-input" type="text" placeholder="Добавить вариант" name="choice_text_0_0">
+                                            <input class="date-input" type="number" placeholder="Балл" name="score_0_0" step="any">
+                                            <span class="remove-option" onclick="removeOption(this)">?</span>
+                                        </div>
+                                    </div>
+                                </div>      
+                                <div class="scale-container" style="display: none;">
+                                    <div class="scale-numbers">
+                                        <input class="date-input scale-min-score" type="number" placeholder="0" min="0" required name="scale_min_score_0">
+                                        <span class="scale-divider">—</span>
+                                        <input class="date-input scale-max-score" type="number" placeholder="—" required name="scale_max_score_0">
+                                    </div>
+                                    <div class="scale-labels">
+                                        <input class="date-input" type="text" class="scale-label-input" placeholder="Минимальная подпись" required name="scale_min_sign_0">
+                                        <input class="date-input" type="text" class="scale-label-input" placeholder="Максимальная подпись" required name="scale_max_sign_0">
+                                    </div>
+                                    <div class="scale-type-container">
+                                        <div class="scale-type-container-1">
+                                            <select class="scale-type-select" name="scale_type_0">
+                                                <option value="default">Стандартная шкала</option>
+                                                <option value="twoside">Двусторонняя шкала</option>
+                                                <option value="minus">Отрицательная шкала</option>
+                                            </select>
+                                            <div class="scale-info-container">
+                                                <span class="scale-info-icon">?</span>
+                                                <div class="scale-info-popup">
+                                                    Пример промежутка от 1 до 7:
+
+                                                    <p class="red-text">Стандартная шкала:</p>
+                                                    Отображение кнопок: 1 2 3 4 5 6 7
+                                                    <br>Баллы: 1 2 3 4 5 6 7
+                                                    <br>Инвертация отображение: 7 6 5 4 3 2 1
+                                                    <br>Инвертация баллы: 7 6 5 4 3 2 1
+
+                                                    <p class="red-text">Двустороння шкала:</p>
+                                                    Отображение кнопок: 3 2 1 0 1 2 3
+                                                    <br>Баллы: 1 2 3 4 5 6 7
+                                                    <br>Инвертация отображение: 3 2 1 0 1 2 3
+                                                    <br>Инвертация баллы: 7 6 5 4 3 2 1
+
+                                                    <p class="red-text">Отрицательная шкала:</p>
+                                                    Отображение кнопок: -3 -2 -1 0 1 2 3
+                                                    <br>Баллы: -3 -2 -1 0 1 2 3
+                                                    <br>Инвертация отображения и баллов не работает.
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <label>
+                                            <input type="checkbox" class="scale-inverse-checkbox" name="scale_inverse_{{ question_index }}">
+                                            <span class="scale-inverse">Инвертировать шкалу</span>
+                                        </label>
+                                    </div>
+                                </div>           
+                                <div class="question-actions">
+                                    <button type="button" class="copy-delete-btn" onclick="copyQuestionForm(this.closest('.question-form-container'))">Копировать</button>
+                                    <button type="button" class="copy-delete-btn" onclick="deleteQuestion(this.closest('.question-form-container'))">Удалить</button>
+                                </div>
+                            </div>
+                            <button type="button" class="add-question-btn" onclick="addQuestion()">+</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script>
+        function toggleCategoryFields() {
+            const categorySelect = document.querySelector('input[name="categorySelect"]:checked').value;
+            const categoryFields = document.getElementById('categoryFields');
+            if (categorySelect === 'select') {
+                categoryFields.style.display = 'block';
+            } else {
+                categoryFields.style.display = 'none';
+            }
+        }
+        function initScaleInfoPopups() {
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.scale-info-container')) {
+                    document.querySelectorAll('.scale-info-popup').forEach(popup => {
+                        popup.classList.remove('show');
+                    });
+                }
+            });
+            document.querySelectorAll('.scale-info-icon').forEach(icon => {
+                icon.removeEventListener('click', handleIconClick);
+                icon.addEventListener('click', handleIconClick);
+            });
+        }
+
+        // Обработчик клика по иконке вопроса
+        function handleIconClick(e) {
+            e.stopPropagation();
+            const popup = this.nextElementSibling;
+            const isVisible = popup.classList.contains('show');
+            document.querySelectorAll('.scale-info-popup').forEach(p => {
+                if (p !== popup) p.classList.remove('show');
+            });
+            popup.classList.toggle('show');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleCategoryFields();
+            document.querySelectorAll('input[name="categorySelect"]').forEach(input => {
+                input.addEventListener('change', toggleCategoryFields);
+            });
+            initScaleInfoPopups();
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.addedNodes.length) {
+                        initScaleInfoPopups();
+                    }
+                });
+            });
+            observer.observe(document.getElementById('questionsContainer'), {
+                childList: true,
+                subtree: true
+            });
+        });
+        
+        function bindScaleInputs(form) {
+            const scaleContainer = form.querySelector('.scale-container');
+            if (!scaleContainer) return;
+            const minScoreInput = scaleContainer.querySelector('.scale-min-score');
+            const maxScoreInput = scaleContainer.querySelector('.scale-max-score');
+            const select = scaleContainer.querySelector('.scale-type-select');
+            select.disabled = false; 
+            minScoreInput.addEventListener('input', () => {
+            });
+            
+            maxScoreInput.addEventListener('input', () => {
+            });
+        }
+
+        // Функция для копирования блока вопроса
+        function copyQuestionForm(container) {
+            const questionsContainer = document.getElementById('questionsContainer');
+            const questionIndex = questionsContainer.children.length;
+            const isMandatoryCheckbox = container.querySelector('input[type="checkbox"][name^="is_mandatory_"]');
+            const isMandatoryChecked = isMandatoryCheckbox ? isMandatoryCheckbox.checked : false;
+            const checkedAttr = isMandatoryChecked ? 'checked' : '';
+            const questionText = container.querySelector('input[name="question_text"]').value;
+            const questionTypeValue = container.querySelector('select[name="question_type"]').value;
+            const scaleMinScoreInput = container.querySelector('input[name^="scale_min_score"]');
+            const scaleMaxScoreInput = container.querySelector('input[name^="scale_max_score"]');
+            const scaleMinSignInput = container.querySelector('input[name^="scale_min_sign"]');
+            const scaleMaxSignInput = container.querySelector('input[name^="scale_max_sign"]');
+            const scaleMinScore = scaleMinScoreInput ? scaleMinScoreInput.value : '';
+            const scaleMaxScore = scaleMaxScoreInput ? scaleMaxScoreInput.value : '';
+            const scaleMinSign = scaleMinSignInput ? scaleMinSignInput.value : '';
+            const scaleMaxSign = scaleMaxSignInput ? scaleMaxSignInput.value : '';
+            const scaleTypeSelect = container.querySelector('.scale-type-select');
+            const scaleTypeValue = scaleTypeSelect ? scaleTypeSelect.value : 'default';
+            const scaleInverseCheckbox = container.querySelector('.scale-inverse-checkbox');
+            const scaleInverseChecked = scaleInverseCheckbox ? scaleInverseCheckbox.checked : false;
+            const newQuestionContainer = document.createElement('div');
+            newQuestionContainer.className = 'question-form-container draggable-question';
+            newQuestionContainer.setAttribute('draggable', 'true');
+
+            newQuestionContainer.innerHTML = `
+                <div class="question-form">
+                    <div class="question-number">Вопрос</div>
+                    <div class="question-header">
+                        <input class="date-input" type="text" name="question_text" placeholder="Введите вопрос" required value="${questionText}">
+                        <select class="question-type-select" name="question_type">
+                            <option value="choice" ${questionTypeValue === 'choice' ? 'selected' : ''}>Один из списка</option>
+                            <option value="scale" ${questionTypeValue === 'scale' ? 'selected' : ''}>Шкала</option>
+                        </select>
+                    </div>
+                    <label class="radio-option">
+                        <input type="checkbox" name="is_mandatory_${questionIndex}" ${checkedAttr} />
+                        <span class="text-limit-time-5">Обязательный вопрос</span>
+                    </label>
+                    <div class="question-options" style="display: ${questionTypeValue === 'choice' ? 'block' : 'none'};"></div>
+                    <div class="scale-container" style="display: ${questionTypeValue === 'scale' ? 'flex' : 'none'};">
+                        <div class="scale-numbers">
+                            <input class="date-input scale-min-score" type="number" placeholder="0" min="0" name="scale_min_score_${questionIndex}" value="${scaleMinScore}">
+                            <span class="scale-divider">—</span>
+                            <input class="date-input scale-max-score" type="number" placeholder="—" name="scale_max_score_${questionIndex}" value="${scaleMaxScore}">
+                        </div>
+                        <div class="scale-labels">
+                            <input type="text" class="date-input" placeholder="Минимальная подпись" name="scale_min_sign_${questionIndex}" value="${scaleMinSign}">
+                            <input type="text" class="date-input" placeholder="Максимальная подпись" name="scale_max_sign_${questionIndex}" value="${scaleMaxSign}">
+                        </div>
+                        <div class="scale-type-container">
+                            <div class="scale-type-container-1">
+                                <select class="scale-type-select" name="scale_type_${questionIndex}" ${(scaleMinScore && scaleMaxScore) ? '' : 'disabled'}>
+                                    <option value="default" ${scaleTypeValue === 'default' ? 'selected' : ''}>Стандартная шкала</option>
+                                    <option value="twoside" ${scaleTypeValue === 'twoside' ? 'selected' : ''}>Двусторонняя шкала</option>
+                                    <option value="minus" ${scaleTypeValue === 'minus' ? 'selected' : ''}>Отрицательная шкала</option>
+                                </select>
+                                <div class="scale-info-container">
+                                    <span class="scale-info-icon">?</span>
+                                    <div class="scale-info-popup">
+                                        Пример промежутка от 1 до 7:
+
+                                        <p class="red-text">Стандартная шкала:</p>
+                                        Отображение кнопок: 1 2 3 4 5 6 7
+                                        <br>Баллы: 1 2 3 4 5 6 7
+                                        <br>Инвертация отображение: 7 6 5 4 3 2 1
+                                        <br>Инвертация баллы: 7 6 5 4 3 2 1
+
+                                        <p class="red-text">Двустороння шкала:</p>
+                                        Отображение кнопок: 3 2 1 0 1 2 3
+                                        <br>Баллы: 1 2 3 4 5 6 7
+                                        <br>Инвертация отображение: 3 2 1 0 1 2 3
+                                        <br>Инвертация баллы: 7 6 5 4 3 2 1
+
+                                        <p class="red-text">Отрицательная шкала:</p>
+                                        Отображение кнопок: -3 -2 -1 0 1 2 3
+                                        <br>Баллы: -3 -2 -1 0 1 2 3
+                                        <br>Инвертация отображения и баллов не работает.
+                                    </div>
+                                </div>
+                            </div>
+                            <label>
+                                <input type="checkbox" class="scale-inverse-checkbox" name="scale_inverse_${questionIndex}" ${scaleInverseChecked ? 'checked' : ''}>
+                                <span class="scale-inverse">Инвертировать шкалу</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="question-actions">
+                        <button type="button" class="copy-delete-btn" onclick="copyQuestionForm(this.closest('.question-form-container'))">Копировать</button>
+                        <button type="button" class="copy-delete-btn" onclick="deleteQuestion(this.closest('.question-form-container'))">Удалить</button>
+                    </div>
+                    <button type="button" class="add-question-btn" onclick="addQuestion()">+</button>
+                </div>
+            `;
+            if (questionTypeValue === 'choice') {
+                const optionsContainer = newQuestionContainer.querySelector('.question-options');
+                const originalOptions = container.querySelectorAll('.option-item');
+                originalOptions.forEach((option, oIndex) => {
+                    const choiceText = option.querySelector('input[type="text"]').value;
+                    const scoreValue = option.querySelector('input[type="number"]').value;
+                    const newOption = document.createElement('div');
+                    newOption.className = 'option-item';
+                    newOption.innerHTML = `
+                        <div class="option-inputs">
+                            <input class="date-input" type="text" placeholder="Добавить вариант" name="choice_text_${questionIndex}_${oIndex}" value="${choiceText}">
+                            <input class="date-input" type="number" placeholder="Балл" name="score_${questionIndex}_${oIndex}" value="${scoreValue}" step="any">
+                            <span class="remove-option">?</span>
+                        </div>`;
+                    // Добавляем событие удаления варианта
+                    newOption.querySelector('.remove-option').addEventListener('click', () => {
+                        newOption.remove();
+                        renameQuestionFields();
+                    });
+                    optionsContainer.appendChild(newOption);
+                });
+            }
+            const addAnswerBtn = document.createElement('button');
+            addAnswerBtn.type = 'button';
+            addAnswerBtn.className = 'add-answer-btn';
+            addAnswerBtn.textContent = 'Добавить вариант ответа';
+            addAnswerBtn.onclick = function () {
+                addNewOption(this.closest('.question-form'));
+            };
+            newQuestionContainer.querySelector('.question-options').prepend(addAnswerBtn);
+            questionsContainer.appendChild(newQuestionContainer);
+            const form = newQuestionContainer.querySelector('.question-form');
+            initDragAndDrop();
+            renameQuestionFields();
+            initScaleInfoPopups();
+            initQuestionForm(form);
+            updateRequiredFields(form);
+            if (questionTypeValue === 'scale') {
+                form.querySelector('.scale-container').style.display = 'flex';
+                form.querySelector('.question-options').style.display = 'none';
+                bindScaleInputs(form);
+            } else {
+                form.querySelector('.scale-container').style.display = 'none';
+                form.querySelector('.question-options').style.display = 'block';
+            }
+            makeQuestionsDraggable();
+        }
+
+        function makeQuestionsDraggable() {
+            document.querySelectorAll('.question-form-container').forEach((el, idx) => {
+                el.setAttribute('draggable', 'true');
+                el.classList.add('draggable-question');
+                el.dataset.index = idx;
+            });
+        }
+
+        document.querySelector('form').addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            document.querySelectorAll('.question-form').forEach(form => {
+                if (!validateQuestionForm(form)) {
+                    isValid = false;
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+            }
+        });
+        let questionCounter = 0;
+        function addQuestion() {
+            const questionsContainer = document.getElementById('questionsContainer');
+            const questionIndex = document.querySelectorAll('.question-form-container').length;
+            const newQuestionHTML = `
+                <div class="question-form-container draggable-question" draggable="true">
+                    <div class="question-form">
+                        <div class="question-number">Вопрос</div>
+                        <div class="question-header">
+                            <input class="date-input" type="text" name="question_text" placeholder="Введите вопрос" required>
+                            <select class="question-type-select" name="question_type">
+                                <option value="choice">Один из списка</option>
+                                <option value="scale">Шкала</option>
+                            </select>
+                        </div>
+                        <label class="radio-option">
+                            <input type="checkbox" name="is_mandatory_${questionIndex}" checked />
+                            <span class="text-limit-time-5">Обязательный вопрос</span>
+                        </label>
+                        <div class="question-options">
+                            <button type="button" class="add-answer-btn" onclick="addNewOption(this.closest('.question-form'))">Добавить вариант ответа</button>
+                        </div>
+                        <div class="scale-container" style="display: none;">
+                            <div class="scale-numbers">
+                                <input class="date-input scale-min-score" type="number" placeholder="0" min="0" name="scale_min_score_${questionIndex}">
+                                <span class="scale-divider">—</span>
+                                <input class="date-input scale-max-score" type="number" placeholder="—" name="scale_max_score_${questionIndex}">
+                            </div>
+                            <div class="scale-labels">
+                                <input class="date-input" type="text" placeholder="Минимальная подпись" name="scale_min_sign_${questionIndex}">
+                                <input class="date-input" type="text" placeholder="Максимальная подпись" name="scale_max_sign_${questionIndex}">
+                            </div>
+                            <div class="scale-type-container">
+                                <div class="scale-type-container-1">
+                                    <select class="scale-type-select" name="scale_type_${questionIndex}" disabled>
+                                        <option value="default">Стандартная шкала</option>
+                                        <option value="twoside">Двусторонняя шкала</option>
+                                        <option value="minus">Отрицательная шкала</option>
+                                    </select>
+                                    <div class="scale-info-container">
+                                        <span class="scale-info-icon">?</span>
+                                        <div class="scale-info-popup">
+                                            Пример промежутка от 1 до 7:
+
+                                            <p class="red-text">Стандартная шкала:</p>
+                                            Отображение кнопок: 1 2 3 4 5 6 7
+                                            <br>Баллы: 1 2 3 4 5 6 7
+                                            <br>Инвертация отображение: 7 6 5 4 3 2 1
+                                            <br>Инвертация баллы: 7 6 5 4 3 2 1
+
+                                            <p class="red-text">Двустороння шкала:</p>
+                                            Отображение кнопок: 3 2 1 0 1 2 3
+                                            <br>Баллы: 1 2 3 4 5 6 7
+                                            <br>Инвертация отображение: 3 2 1 0 1 2 3
+                                            <br>Инвертация баллы: 7 6 5 4 3 2 1
+
+                                            <p class="red-text">Отрицательная шкала:</p>
+                                            Отображение кнопок: -3 -2 -1 0 1 2 3
+                                            <br>Баллы: -3 -2 -1 0 1 2 3
+                                            <br>Инвертация отображения и баллов не работает.
+                                        </div>
+                                    </div>
+                                </div>
+                                <label>
+                                    <input type="checkbox" class="scale-inverse-checkbox" name="scale_inverse_${questionIndex}">
+                                    <span class="scale-inverse">Инвертировать шкалу</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="question-actions">
+                            <button type="button" class="copy-delete-btn" onclick="copyQuestionForm(this.closest('.question-form-container'))">Копировать</button>
+                            <button type="button" class="copy-delete-btn" onclick="deleteQuestion(this.closest('.question-form-container'))">Удалить</button>
+                        </div>
+                    </div>
+                    <button type="button" class="add-question-btn" onclick="addQuestion()">+</button>
+                </div>`;
+            questionsContainer.insertAdjacentHTML('beforeend', newQuestionHTML);
+            const thisForm = questionsContainer.lastElementChild.querySelector('.question-form');
+            bindScaleInputs(thisForm);
+            initScaleInfoPopups();
+            addNewOption(thisForm);
+            renameQuestionFields();
+            initDragAndDrop();
+            initQuestionForm(thisForm);
+        }
+
+        function initDragAndDrop() {
+            const questionsContainer = document.getElementById('questionsContainer');
+            let draggedElem = null;
+            questionsContainer.querySelectorAll('.question-form-container').forEach(block => {
+                block.addEventListener('dragstart', (e) => {
+                    draggedElem = block;
+                    setTimeout(()=> block.classList.add('dragging'), 0);
+                });
+                block.addEventListener('dragend', (e) => {
+                    block.classList.remove('dragging');
+                    draggedElem = null;
+                });
+                block.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (block !== draggedElem) block.classList.add('drag-over');
+                });
+                block.addEventListener('dragleave', (e) => {
+                    block.classList.remove('drag-over');
+                });
+                block.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    block.classList.remove('drag-over');
+                    if (block !== draggedElem) {
+                        questionsContainer.insertBefore(draggedElem, block);
+                    }
+                    renameQuestionFields(); 
+                });
+            });
+        }
+        function reinitAll() {
+            initDragAndDrop();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initDragAndDrop();
+        });
+
+        // Функция для добавления нового варианта ответа
+        function addNewOption(form) {
+            const questionOptions = form.querySelector('.question-options');
+            const questionIndex = Array.from(document.querySelectorAll('.question-form-container')).indexOf(form.closest('.question-form-container'));
+            const optionIndex = questionOptions.querySelectorAll('.option-item').length;
+            const newOption = document.createElement('div');
+
+            newOption.className = 'option-item';
+            newOption.innerHTML = `
+                <div class="option-inputs">
+                    <input class="date-input" type="text" placeholder="Добавить вариант" name="choice_text_${questionIndex}_${optionIndex}">
+                    <input class="date-input" type="number" placeholder="Балл" name="score_${questionIndex}_${optionIndex}" step="any">
+                    <span class="remove-option" onclick="removeOption(this)">?</span>
+                </div>`;
+            newOption.querySelector('.remove-option').addEventListener('click', function() {
+                if (questionOptions.querySelectorAll('.option-item').length > 1) {
+                    newOption.remove();
+                    renameQuestionFields();
+                }
+            });
+            questionOptions.appendChild(newOption);
+            renameQuestionFields();
+            updateRequiredFields(form);
+            initDragAndDrop();
+        }
+
+        // Функция для удаления вопроса
+        function deleteQuestion(container) {
+            const questions = document.querySelectorAll('.question-form-container');
+            const isFirstQuestion = questions[0] === container;
+            if (isFirstQuestion) {
+                alert('Первый вопрос нельзя удалить');
+                return; 
+            }
+            container.remove();
+            renameQuestionFields();
+        }
+
+        // Обновляем обработчики кнопок удаления для всех вопросов
+        function updateDeleteButtons() {
+            document.querySelectorAll('.question-actions button:last-child').forEach(btn => {
+                const container = btn.closest('.question-form-container');
+                const isFirstQuestion = document.querySelector('.question-form-container') === container;
+                
+                if (isFirstQuestion) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                } else {
+                    btn.disabled = false;
+                    btn.style.opacity = '';
+                    btn.style.cursor = '';
+                }
+            });
+        }
+
+        // Функция для обновления номеров вопросов
+        function updateQuestionNumbers() {
+            const questionContainers = document.querySelectorAll('.question-form-container');
+            questionContainers.forEach((container, idx) => {
+                let numberDiv = container.querySelector('.question-number');
+                if (!numberDiv) {
+                    numberDiv = document.createElement('div');
+                    numberDiv.className = 'question-number';
+                    container.insertBefore(numberDiv, container.firstChild);
+                }
+                numberDiv.textContent = `Вопрос №${idx + 1}`;
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDeleteButtons();
+        });
+        const observer = new MutationObserver(function() {
+            updateDeleteButtons();
+        });
+        observer.observe(document.getElementById('questionsContainer'), {
+            childList: true,
+            subtree: true
+        });
+
+        // Обработчик события DOMContentLoaded для инициализации первой формы
+        document.addEventListener('DOMContentLoaded', function () {
+            const firstForm = document.querySelector('.question-form');
+            if (firstForm) {
+                renameQuestionFields();
+                if (firstForm.querySelectorAll('.option-item').length < 1) {
+                    addNewOption(firstForm);
+                }
+                updateRequiredFields(firstForm);
+                initQuestionForm(firstForm);
+            }
+            document.querySelector('#questionsContainer').addEventListener('change', event => {
+                if (event.target.classList.contains('mandatory-checkbox')) {
+                    const questionForm = event.target.closest('.question-form');
+                    if (event.target.checked) {
+                    questionForm.setAttribute('data-mandatory', 'true');
+                    } else {
+                    questionForm.setAttribute('data-mandatory', 'false');
+                    }
+                }
+            });
+            document.querySelectorAll('.question-form').forEach(form => {
+                initQuestionForm(form);
+                if (form.querySelector('.question-type-select').value === 'scale') {
+                    bindScaleInputs(form);
+                }
+            });
+            initDragAndDrop();
+        });
+
+        function initDragAndDrop() {
+            const container = document.getElementById('questionsContainer');
+            let draggedElem = null;
+            let autoScrollInterval = null;
+            let scrollDirection = 0;
+            container.querySelectorAll('.question-form-container').forEach(block => {
+                block.removeEventListener('dragstart', block._dragStart);
+                block.removeEventListener('dragend', block._dragEnd);
+                block.removeEventListener('dragover', block._dragOver);
+                block.removeEventListener('dragleave', block._dragLeave);
+                block.removeEventListener('drop', block._drop);
+            });
+            container.querySelectorAll('.question-form-container').forEach(block => {
+                block._dragStart = function (e) {
+                    draggedElem = block;
+                    setTimeout(() => block.classList.add('dragging'), 0);
+                };
+                block._dragEnd = function (e) {
+                    block.classList.remove('dragging');
+                    document.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over'));
+                    draggedElem = null;
+                    stopAutoScroll();
+                };
+                block._dragOver = function (e) {
+                    e.preventDefault();
+                    if (block === draggedElem) return;
+                    const bounding = block.getBoundingClientRect();
+                    const offset = e.clientY - bounding.top;
+                    block.classList.add('drag-over');
+                    if (offset < bounding.height/2) {
+                        block.classList.add('top-indicator');
+                        block.classList.remove('bottom-indicator');
+                    } else {
+                        block.classList.add('bottom-indicator');
+                        block.classList.remove('top-indicator');
+                    }
+                    const edgeZone = 120; 
+                    const scrollSpeed = 30; 
+                    if (e.clientY < edgeZone) {
+                        startAutoScroll(-scrollSpeed);
+                    } else if (e.clientY > window.innerHeight - edgeZone) {
+                        startAutoScroll(scrollSpeed);
+                    } else {
+                        stopAutoScroll();
+                    }
+                };
+                block._dragLeave = function(e) {
+                    block.classList.remove('drag-over', 'top-indicator', 'bottom-indicator');
+                    stopAutoScroll();
+                };
+                block._drop = function(e) {
+                    e.preventDefault();
+                    block.classList.remove('drag-over', 'top-indicator', 'bottom-indicator');
+                    stopAutoScroll();
+                    if (!draggedElem || block === draggedElem) return;
+                    const bounding = block.getBoundingClientRect();
+                    const offset = e.clientY - bounding.top;
+                    if (offset < bounding.height/2) {
+                        container.insertBefore(draggedElem, block);
+                    } else {
+                        if (block.nextSibling) {
+                            container.insertBefore(draggedElem, block.nextSibling);
+                        } else {
+                            container.appendChild(draggedElem);
+                        }
+                    }
+                    renameQuestionFields();
+                };
+
+                block.addEventListener('dragstart', block._dragStart);
+                block.addEventListener('dragend', block._dragEnd);
+                block.addEventListener('dragover', block._dragOver);
+                block.addEventListener('dragleave', block._dragLeave);
+                block.addEventListener('drop', block._drop);
+                block.setAttribute('draggable', 'true');
+            });
+            document.querySelectorAll('.question-form-container input, .question-form-container select, .question-form-container textarea').forEach(element => {
+                element.addEventListener('dragstart', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+
+            function startAutoScroll(direction) {
+                if (autoScrollInterval && scrollDirection === direction) return;
+                stopAutoScroll(); 
+                scrollDirection = direction;
+                autoScrollInterval = setInterval(() => {
+                    window.scrollBy({top: scrollDirection, left: 0, behavior: 'auto'});
+                }, 10); 
+            }
+            function stopAutoScroll() {
+                if (autoScrollInterval) {
+                    clearInterval(autoScrollInterval);
+                    autoScrollInterval = null;
+                    scrollDirection = 0;
+                }
+            }
+        }
+
+        function updateRequiredFields(form) {
+            const questionTypeSelect = form.querySelector('.question-type-select');
+            const questionOptions = form.querySelector('.question-options');
+            const scaleContainer = form.querySelector('.scale-container');
+            const isMandatoryCheckbox = form.querySelector('input[type="checkbox"][name^="is_mandatory_"]');
+            form.querySelectorAll('input[required], select[required]').forEach(el => {
+                el.required = false;
+            });
+            form.querySelector('input[name^="question_text"]').required = true;
+
+            if (questionTypeSelect.value === 'scale') {
+                scaleContainer.querySelectorAll('input[name^="scale_min_"], input[name^="scale_max_"]').forEach(input => {
+                    input.required = true;
+                });
+            } else {
+                questionOptions.querySelectorAll('.option-item input[type="text"]').forEach(input => {
+                    if (input.value.trim() !== '') {
+                        input.required = true;
+                    }
+                });
+            }
+            if (isMandatoryCheckbox) {
+                isMandatoryCheckbox.required = true;
+            }
+        }
+
+        function validateQuestionForm(form) {
+            updateRequiredFields(form);
+            const questionTypeSelect = form.querySelector('.question-type-select');
+            const questionOptions = form.querySelector('.question-options');
+            if (questionTypeSelect.value === 'choice') {
+                const filledOptions = Array.from(questionOptions.querySelectorAll('.option-item input[type="text"]'))
+                    .filter(input => input.value.trim() !== '');
+                
+                if (filledOptions.length === 0) {
+                    alert('Для вопроса типа "Один из списка" должен быть хотя бы один вариант ответа');
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        function initQuestionForm(form) {
+            const questionTypeSelect = form.querySelector('.question-type-select');
+            const questionOptions = form.querySelector('.question-options');
+            const scaleContainer = form.querySelector('.scale-container');
+            const scaleTypeSelect = form.querySelector('.scale-type-select');
+            function initQuestionType() {
+                if (questionTypeSelect.value === 'scale') {
+                    questionOptions.style.display = 'none';
+                    scaleContainer.style.display = 'flex';
+                    if (scaleTypeSelect) {
+                        scaleTypeSelect.disabled = false;
+                    }
+                    bindScaleInputs(form);
+                } else {
+                    questionOptions.style.display = 'block';
+                    scaleContainer.style.display = 'none';
+                    if (scaleTypeSelect) {
+                        scaleTypeSelect.disabled = true;
+                    }
+                    if (questionOptions.querySelectorAll('.option-item').length < 1) {
+                        addNewOption(form);
+                    }
+                }
+                updateRequiredFields(form);
+            }
+
+            questionTypeSelect.addEventListener('change', function () {
+                initQuestionType();
+            });
+
+            const existingOptions = form.querySelectorAll('.option-item');
+            existingOptions.forEach(option => {
+                const inputText = option.querySelector('.option-text');
+                if (inputText) {
+                    inputText.addEventListener('input', function () {
+                        toggleRemoveButton(option);
+                    });
+                }
+                const removeBtn = option.querySelector('.remove-option');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        option.remove();
+                    });
+                }
+            });
+
+            bindScaleInputs(form);
+            initQuestionType();
+        }
+
+        function toggleRemoveButton(optionElement) {
+            const textInput = optionElement.querySelector('.option-text');
+            const removeBtn = optionElement.querySelector('.remove-option');
+            removeBtn.style.display = textInput.value.trim() === '' ? 'none' : 'block';
+        }
+
+        function toggleLimitTime() {
+            const limitedRadio = document.querySelector('input[name="timeLimit"][value="limited"]');
+            const timeInputs = document.querySelector('.time-inputs');
+            const timeNumberInput = timeInputs.querySelector('input[name="time"]');
+            if (limitedRadio.checked) {
+                timeInputs.style.display = 'block';
+                timeNumberInput.required = true;
+            } else {
+                timeInputs.style.display = 'none';
+                timeNumberInput.required = false;
+                timeNumberInput.value = '';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', toggleLimitTime);
+
+        function renameQuestionFields() {
+            const questionContainers = document.querySelectorAll('.question-form-container');
+            questionContainers.forEach((qContainer, qIndex) => {
+                const questionInput = qContainer.querySelector('input[name^="question_text"]');
+                if (questionInput) questionInput.setAttribute('name', 'question_text');
+                const typeSelect = qContainer.querySelector('select[name^="question_type"]');
+                if (typeSelect) typeSelect.setAttribute('name', 'question_type');
+                const isMandatoryCheckbox = qContainer.querySelector('input[type="checkbox"][name^="is_mandatory_"]');
+                if (isMandatoryCheckbox) isMandatoryCheckbox.setAttribute('name', `is_mandatory_${qIndex}`);
+                const optionItems = qContainer.querySelectorAll('.option-item');
+                optionItems.forEach((optionItem, oIndex) => {
+                    const choiceInput = optionItem.querySelector('input[type="text"]');
+                    if (choiceInput) choiceInput.setAttribute('name', `choice_text_${qIndex}_${oIndex}`);
+                    const scoreInput = optionItem.querySelector('input[type="number"]');
+                    if (scoreInput) scoreInput.setAttribute('name', `score_${qIndex}_${oIndex}`);
+                });
+                const scaleMinSign = qContainer.querySelector('input[name^="scale_min_sign"]');
+                if (scaleMinSign) scaleMinSign.setAttribute('name', `scale_min_sign_${qIndex}`);
+                const scaleMaxSign = qContainer.querySelector('input[name^="scale_max_sign"]');
+                if (scaleMaxSign) scaleMaxSign.setAttribute('name', `scale_max_sign_${qIndex}`);
+                const scaleMinScore = qContainer.querySelector('input[name^="scale_min_score"]');
+                if (scaleMinScore) scaleMinScore.setAttribute('name', `scale_min_score_${qIndex}`);
+                const scaleMaxScore = qContainer.querySelector('input[name^="scale_max_score"]');
+                if (scaleMaxScore) scaleMaxScore.setAttribute('name', `scale_max_score_${qIndex}`);
+                const scaleInverseCB = qContainer.querySelector('.scale-inverse-checkbox');
+                if (scaleInverseCB) scaleInverseCB.setAttribute('name', `scale_inverse_${qIndex}`);
+            });
+            updateQuestionNumbers();
+        }
+    </script>
+{% endblock %}
